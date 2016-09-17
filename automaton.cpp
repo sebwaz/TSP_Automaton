@@ -2,54 +2,39 @@
 #include <glut.h>
 using namespace std;
 
-int atm_grid;
+GLfloat gfPosX = 0.0;
+GLfloat gfDeltaX = .0001;
 
-void InitRendering()
-{
-	glClearColor(0, 0, 0, 0);
-}
-
-void Display()
-{
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glColor3f(1, 1, 1);
-
+void Draw() {
+	glClear(GL_COLOR_BUFFER_BIT);
+	glColor3f(1.0, 1.0, 1.0);
 	glBegin(GL_LINES);
-	glVertex3f(0, 0, -5);
-	glVertex3f(2, 2, -(atm_grid++)%8);
+	glVertex3f(gfPosX, 0.25, 0.0);
+	glVertex3f(1.0 - gfPosX, 0.75, 0.0);
 	glEnd();
-
-	glutSwapBuffers();
+	glFlush();
+	gfPosX += gfDeltaX;
+	if (gfPosX >= 1.0 || gfPosX <= 0.0) {
+		gfDeltaX = -gfDeltaX;
+	}
+	glutPostRedisplay();
 }
 
-void Reshape(int w, int h)
-{
-	glViewport(0, 0, w, h);
+void Initialize() {
+	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(45.0, (GLdouble)w / (GLdouble)h, 1.0, 200.0);
+	glOrtho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0);
 }
 
-int main()
-{
-
-	atm_grid = 4;
-
-	/* Initialize GLUT */
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-	glutInitWindowSize(400, 400);
-
-	/* Create windows */
-	glutCreateWindow("TSP Automaton"); //takes name of window as arg
-	InitRendering();
-
-	/* Handler fxns */
-	glutDisplayFunc(Display); //specify fxn called to draw window contents
-	glutReshapeFunc(Reshape); //specify fxn called when window is resized
-
-	/* Main loop */
-	glutMainLoop(); //calls display and reshape fxns
+int main(int iArgc, char** cppArgv) {
+	glutInit(&iArgc, cppArgv);
+	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+	glutInitWindowSize(250, 250);
+	glutInitWindowPosition(200, 200);
+	glutCreateWindow("XoaX.net");
+	Initialize();
+	glutDisplayFunc(Draw);
+	glutMainLoop();
 	return 0;
 }
