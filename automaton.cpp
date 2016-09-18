@@ -8,8 +8,8 @@ using namespace std;
 /////////////
 
 /* TSP SPEC */
-static const int S_GRID = 50; // assume square grid for now
-static const int NUM_PT = 6;  // TODO: colorization currently only handles 6 points 
+static const int S_GRID = 5; // assume square grid for now
+static const int NUM_PT = 6; // TODO: colorization currently only handles 6 points 
 static int GRID[S_GRID][S_GRID];
 static GLfloat unit_span = 0.3 / S_GRID;
 
@@ -31,10 +31,10 @@ void Draw()
 	{
 		for (int j = 0; j < S_GRID; j++)
 		{
-			// color based on grid value
-			cout << GRID[i][j];
+			// cout << GRID[i][j];
 			switch(GRID[i][j])
-			{ 
+			{
+				// colorize based on grid value
 				case 0: glColor3f(1.0, 0.0, 0.0); break;
 				case 1: glColor3f(0.0, 1.0, 0.0); break;
 				case 2: glColor3f(0.0, 0.0, 1.0); break;
@@ -47,8 +47,8 @@ void Draw()
 			glBegin(GL_POLYGON);
 			glVertex3f(0.1 + unit_span*(i),   0.35 + unit_span*(j),   0.0);
 			glVertex3f(0.1 + unit_span*(i+1), 0.35 + unit_span*(j),   0.0);
-			glVertex3f(0.1 + unit_span*(i),   0.35 + unit_span*(j+1), 0.0);
 			glVertex3f(0.1 + unit_span*(i+1), 0.35 + unit_span*(j+1), 0.0);
+			glVertex3f(0.1 + unit_span*(i),   0.35 + unit_span*(j+1), 0.0);
 			glEnd();
 		}
 	}
