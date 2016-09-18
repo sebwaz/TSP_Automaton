@@ -18,7 +18,7 @@ static bool done = false;
 /////////////
 
 static void timerCallback(int value) {
-	if (!done) { done = !radiate(); }
+	if (!done) { done = !radiate(); print_neighbors_all(); }
 	glutPostRedisplay();
 }
 
@@ -60,10 +60,8 @@ void Draw()
 		}
 	}
 	glFlush();
-	glutTimerFunc(500, timerCallback, NULL);
+	glutTimerFunc(100, timerCallback, NULL);
 }
-
-
 
 // called when Draw() returns
 void Idle()

@@ -11,19 +11,40 @@
 // AUTOMATA // 
 //////////////
 
+// forward declaration
+class Automaton;
+class Node;
+
 // each city in TSP will be of the Automaton class
 class Automaton
 {
 public:
-	Automaton(int x, int y);
+	Automaton(int x, int y, int ID);
 	~Automaton();
+	int get_ID();
 	int* get_xy();
+	char get_state();
+	Node* get_neighbors(); // retuns the head of neighbor list
+
+	/* FOR HANDLING NEIGHBORS */
+	void add_neighbor(Automaton* neighbor); // dynamically adds node to neighbor list
+
 
 private:
-	char state = 'n';
-	int  pos[2];
-	Automaton*  links[2] = { NULL, NULL };
-	Automaton** neighbors;
+	char	   m_state = 'n';
+	int		   m_pos[2];
+	int        m_ID;
+	Automaton* m_links[2]  = { NULL, NULL };
+	Node*      m_neighbors =   NULL;
+};
+
+class Node
+{
+public:
+	Node(Automaton* atmn) { n_atmn = atmn; };
+
+	Automaton* n_atmn;
+	Node*      n_next = NULL;
 };
 
 
@@ -36,6 +57,8 @@ double get_dist(int x, int y, Automaton* point);
 int    get_grid_w();
 int    get_grid_h();
 int**  get_grid_state();
+void   print_neighbors(Automaton* point);
+void   print_neighbors_all();
 
 
 
@@ -43,10 +66,22 @@ int**  get_grid_state();
 // FXNS FOR MANIP GRID //
 /////////////////////////
 
-// initializes global grid to all 0s (empty), then places TSP cities in grid
+// initializes global grid to all 0s (empty),
+// then places TSP cities in grid
 void InitTSP();
 
-// performs 1-frame radiation. returns bool: true if radiation produced change, false if radiationdid nothing
+// performs 1-frame radiation.
+// returns bool: true if radiation produced change,
+// false if radiationdid nothing
 bool radiate();
+
+// takes the pointers to two automaton
+// adds them to each other's neighbors list
+void link_two(Automaton* point_a, Automaton* point_b);
+
+// takes an array of bools of size == num_pt,
+// where true indicates that radiation has collided at given position for each
+// adds each occupant to each other's neighbors list
+void assign_neighbors(bool* neighbors);
 
 #endif

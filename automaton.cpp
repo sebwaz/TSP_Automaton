@@ -14,8 +14,8 @@ using namespace std;
 static int frame = 1;
 
 /* TSP SPEC */
-static const int GRID_W = 100;
-static const int GRID_H = 100;
+static const int GRID_W = 200;
+static const int GRID_H = 200;
 static const int NUM_PT = 7;  // TODO: colorization currently only handles 7 points 
 
 static int**     GRID;
@@ -27,15 +27,32 @@ Automaton*       POINTS[NUM_PT];
 // FXNS FOR HANDLING AUTOMATA // 
 ////////////////////////////////
 
-Automaton::Automaton(int x, int y)
+/* AUTOMATON */
+Automaton::Automaton(int x, int y, int ID) { m_pos[0] = x; m_pos[1] = y; m_ID = ID; }
+Automaton::~Automaton()
 {
-	pos[0] = x;
-	pos[1] = y;
+	Node* iter = m_neighbors;
+
+	// just clean up the dalloc neighbor list
+	if           (iter == NULL)         { return; }
+	else { while (iter->n_next != NULL) { Node* next = iter->n_next; delete[](iter); iter = next; }}
+	delete[](iter);
 }
 
-int* Automaton::get_xy()
+int   Automaton::get_ID()        { return m_ID; }
+int*  Automaton::get_xy()	     { return m_pos; }
+char  Automaton::get_state()     { return m_state; }
+Node* Automaton::get_neighbors() { return m_neighbors; }
+
+void Automaton::add_neighbor(Automaton* new_neighbor)
 {
-	return pos;
+	Node* iter = m_neighbors;
+
+	// go until you find the end, or find that there is already a match
+	// if the current spot is not a match, you have found the end, allocate new node
+	if           (iter == NULL)                                         { m_neighbors  = new Node(new_neighbor); }
+	else { while (iter->n_next != NULL && iter->n_atmn != new_neighbor) { iter         = iter->n_next; }
+		   if    (iter->n_atmn != new_neighbor)                         { iter->n_next = new Node(new_neighbor); }}
 }
 
 
@@ -52,6 +69,19 @@ double get_dist(int x, int y, Automaton* point)
 int    get_grid_w()     { return GRID_W; }
 int    get_grid_h()     { return GRID_H; }
 int**  get_grid_state() { return GRID; }
+
+void print_neighbors(Automaton* point)
+{
+	Node* iter = point->get_neighbors();
+	cout << (point->get_ID() + 1) << ": ";
+
+	// print out list in order
+	if           (iter == NULL)         { cout << endl; return; }
+	else { while (iter->n_next != NULL) { cout << (iter->n_atmn->get_ID() + 1) <<  " "; iter = iter->n_next; }
+										  cout << (iter->n_atmn->get_ID() + 1) << endl; }
+}
+
+void print_neighbors_all() { for (int i = 0; i < NUM_PT; i++) { print_neighbors(POINTS[i]); } cout << endl; }
 
 
 
@@ -89,7 +119,7 @@ void InitTSP()
 			y = rand() % GRID_H;
 		} while (GRID[x][y] != 0);
 
-		POINTS[i] = new Automaton(x, y);
+		POINTS[i] = new Automaton(x, y, i);
 		GRID[x][y] = i + 1;
 	}
 }
@@ -97,39 +127,73 @@ void InitTSP()
 bool radiate()
 {
 	// create grid to track updates
-	int D_GRID[GRID_W][GRID_H];
+	// (contains 3d dimension which is hash for each point which radiates here during this frame)
+	bool D_GRID[GRID_W][GRID_H][NUM_PT];
 	for (int i = 0; i < GRID_W; i++) { for (int j = 0; j < GRID_H; j++)
 	{
-		// initialize with all zeroes
-		D_GRID[i][j] = 0;
+		// initialize with all falses (no occupancy)
+		for (int k = 0; k < NUM_PT; k++) { D_GRID[i][j][k] = false; }
 	}}
 
 	// for each grid space
 	for (int i = 0; i < GRID_W; i++) { for (int j = 0; j < GRID_H; j++)
 	{
 		// if the space was previously empty
+		// (because of this specification, we won't assign neighbors due to radial overlap disjoint areas) 
 		if (GRID[i][j] == 0)
 			// check if it is within radius of points
 			for (int k = 0; k < NUM_PT; k++)
 				if (get_dist(i, j, POINTS[k]) <= frame)
-					if (D_GRID[i][j] == 0) { D_GRID[i][j] = k + 1; }      // if no other point has radiated here in this frame, occupy
-					else				   { D_GRID[i][j] = NUM_PT + 2; } // if another  point has radiated here in this frame, nullify (put non-zero, non-colorized digit) 
+					D_GRID[i][j][k] = true; // if no other point has radiated here in this frame, occupy
 	}}
 
 	// update + check if there was any change
-	bool nonzero = false;
+	bool nonempty = false;
 	for (int i = 0; i < GRID_W; i++) { for (int j = 0; j < GRID_H; j++)
 	{
-		if (D_GRID[i][j] != 0) { nonzero = true; GRID[i][j] += D_GRID[i][j]; }
+		int num_occupy =  0;
+		int pnt_occupy = -1;
+		for (int k = 0; k < NUM_PT; k++)
+		{
+			// determine how many new occupancies in the position, and from what point the occupancies radiates
+			// stores only the latest point, unused if num_occupy > 1
+			if (D_GRID[i][j][k])
+			{
+				num_occupy += 1;
+				pnt_occupy  = k+1;
+				nonempty    = true;
+			}
+		}
+
+		// update point properties and grid accordingly
+		// TODO: write function that takes bool array for point and assigns the trues as neighbors
+		if      (num_occupy  > 1) { GRID[i][j] = -1; assign_neighbors(D_GRID[i][j]); }
+		else if (num_occupy == 1) { GRID[i][j] = pnt_occupy; }
 	}}
 
 	// error checking
+	/*
 	for (int i = 0; i < GRID_H; i++) { for (int j = 0; j < GRID_W; j++)
 	{
-			cout << GRID[j][GRID_H-i-1];
+		cout << GRID[j][GRID_H-i-1];
 	} cout << endl; }
 	cout << endl << frame << endl << endl;
+	*/
 
 	frame++;
-	return nonzero;
+	return nonempty;
+}
+
+void link_two(Automaton* point_a, Automaton* point_b)
+{
+	point_a->add_neighbor(point_b);
+	point_b->add_neighbor(point_a);
+}
+
+void assign_neighbors(bool* neighbors)
+{
+	for (int i = 0; i < NUM_PT; i++) { for (int j = i + 1; j < NUM_PT; j++) {
+		if (neighbors[i] && neighbors[j])
+			link_two(POINTS[i], POINTS[j]);
+	}}
 }
