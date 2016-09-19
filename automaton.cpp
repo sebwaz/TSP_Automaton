@@ -16,7 +16,7 @@ static int frame = 1;
 /* TSP SPEC */
 static const int GRID_W = 200;
 static const int GRID_H = 200;
-static const int NUM_PT = 7;  // TODO: colorization currently only handles 7 points 
+static const int NUM_PT = 4;  // TODO: colorization currently only handles 7 points 
 
 static int**     GRID;
 Automaton*       POINTS[NUM_PT];
@@ -44,15 +44,16 @@ int*  Automaton::get_xy()	     { return m_pos; }
 char  Automaton::get_state()     { return m_state; }
 Node* Automaton::get_neighbors() { return m_neighbors; }
 
-void Automaton::add_neighbor(Automaton* new_neighbor)
+bool Automaton::add_neighbor(Automaton* new_neighbor)
 {
 	Node* iter = m_neighbors;
 
 	// go until you find the end, or find that there is already a match
 	// if the current spot is not a match, you have found the end, allocate new node
-	if           (iter == NULL)                                         { m_neighbors  = new Node(new_neighbor); }
+	if           (iter == NULL)                                         { m_neighbors  = new Node(new_neighbor); return true; }
 	else { while (iter->n_next != NULL && iter->n_atmn != new_neighbor) { iter         = iter->n_next; }
-		   if    (iter->n_atmn != new_neighbor)                         { iter->n_next = new Node(new_neighbor); }}
+	if           (iter->n_atmn != new_neighbor)                         { iter->n_next = new Node(new_neighbor); return true; }
+	else                                                                { return false; }}
 }
 
 
@@ -176,29 +177,44 @@ bool radiate()
 		else if (num_occupy == 1) { GRID[i][j] = pnt_occupy; }
 	}}
 
-	// error checking
-	/*
-	for (int i = 0; i < GRID_H; i++) { for (int j = 0; j < GRID_W; j++)
-	{
-		cout << GRID[j][GRID_H-i-1];
-	} cout << endl; }
-	cout << endl << frame << endl << endl;
-	*/
-
 	frame++;
 	return nonempty;
 }
 
-void link_two(Automaton* point_a, Automaton* point_b)
+void neighbor_two(Automaton* point_a, Automaton* point_b)
 {
-	point_a->add_neighbor(point_b);
-	point_b->add_neighbor(point_a);
+	if (point_a->add_neighbor(point_b) && point_b->add_neighbor(point_a))
+		handle_new_link(point_a, point_b);
 }
 
+// TODO:
+// Be sure neighbor logging happens in distance order!
+// Right now, this is not guaranteed. Two neighbors may be added
+// in the same frame, and their order depends only on grid check order.
+// This may be problematic for automata's linking behavior.
+
+// Moreover, neighbor_two() is often called when the neighbors are not new
+// Is this problematic for linking behavior?
 void assign_neighbors(bool* neighbors)
 {
 	for (int i = 0; i < NUM_PT; i++) { for (int j = i + 1; j < NUM_PT; j++) {
 		if (neighbors[i] && neighbors[j])
-			link_two(POINTS[i], POINTS[j]);
+			neighbor_two(POINTS[i], POINTS[j]);
 	}}
+}
+
+void handle_new_link(Automaton* point_a, Automaton* point_b)
+{
+	// if this is a joint (links == 2), do nothing
+	// if this is an end  (links < 2),  and other is an end  (links < 2)   automatically link
+	// if this is an end  (links < 2),  but the other is not (links == 2), special case:
+	// check if joint has link which neighbors an end, or an excited
+	// if link neighbors end,     break link and connect link to end, connect joint (now end) to this end
+	// if link neighbors excited,
+	// break excited neighbor from its old link   (which neighbors an end), connect it's old link to its neighbor end
+	// break this link and connect it to the excited neighbor (now an end)
+	// connect this joint (now an end) to other end
+	// if link not neighbor end or excited, change link state to excited (?)
+
+	// should every point have a neighboring-an-end status, that gets updated when neighbor becomes end or becomes joint? 
 }
