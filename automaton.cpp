@@ -66,23 +66,24 @@ double get_dist(int x, int y, Automaton* point)
 	return hypot(double(x - point->get_xy()[0]), double(y - point->get_xy()[1]));
 }
 
-int    get_grid_w()     { return GRID_W; }
-int    get_grid_h()     { return GRID_H; }
-int**  get_grid_state() { return GRID; }
+int        get_grid_w()         { return GRID_W; }
+int        get_grid_h()         { return GRID_H; }
+int**      get_grid_state()     { return GRID; }
+int        get_num_atmn()       { return NUM_PT; }
+Automaton* get_arr_atmn(int index) { return POINTS[index]; }
 
 void print_neighbors(Automaton* point)
 {
 	Node* iter = point->get_neighbors();
-	cout << (point->get_ID() + 1) << ": ";
+	cout << point->get_ID() << ": ";
 
 	// print out list in order
 	if           (iter == NULL)         { cout << endl; return; }
-	else { while (iter->n_next != NULL) { cout << (iter->n_atmn->get_ID() + 1) <<  " "; iter = iter->n_next; }
-										  cout << (iter->n_atmn->get_ID() + 1) << endl; }
+	else { while (iter->n_next != NULL) { cout << iter->n_atmn->get_ID() <<  " "; iter = iter->n_next; }
+										  cout << iter->n_atmn->get_ID() << endl; }
 }
 
 void print_neighbors_all() { for (int i = 0; i < NUM_PT; i++) { print_neighbors(POINTS[i]); } cout << endl; }
-
 
 
 /////////////////////////
@@ -119,11 +120,15 @@ void InitTSP()
 			y = rand() % GRID_H;
 		} while (GRID[x][y] != 0);
 
-		POINTS[i] = new Automaton(x, y, i);
+		POINTS[i] = new Automaton(x, y, i + 1);
 		GRID[x][y] = i + 1;
 	}
 }
 
+// TODO:
+// determine whether this can be simplified to an abstracted calculation
+// currently performs an "embodied" calculation. see basic geometry ref:
+// https://www.algebra.com/algebra/homework/Length-and-distance/Length-and-distance.faq.question.442382.html
 bool radiate()
 {
 	// create grid to track updates

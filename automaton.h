@@ -53,12 +53,15 @@ public:
 // FXNS FOR GET AUTOMATA STATE //
 /////////////////////////////////
 
-double get_dist(int x, int y, Automaton* point);
-int    get_grid_w();
-int    get_grid_h();
-int**  get_grid_state();
-void   print_neighbors(Automaton* point);
-void   print_neighbors_all();
+double     get_dist(int x, int y, Automaton* point);
+int        get_grid_w();
+int        get_grid_h();
+int**      get_grid_state();
+int        get_num_atmn();
+Automaton* get_arr_atmn(int index);
+void       print_neighbors(Automaton* point);
+void       print_neighbors_all();
+
 
 
 
