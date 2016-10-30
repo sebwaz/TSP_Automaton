@@ -16,7 +16,7 @@ static int frame = 1;
 /* TSP SPEC */
 static const int GRID_W = 200;
 static const int GRID_H = 200;
-static const int NUM_PT = 4;  // TODO: colorization currently only handles 7 points 
+static const int NUM_PT = 7;  // TODO: colorization currently only handles 7 points 
 
 static int**     GRID;
 Automaton*       POINTS[NUM_PT];
@@ -67,10 +67,17 @@ double get_dist(int x, int y, Automaton* point)
 	return hypot(double(x - point->get_xy()[0]), double(y - point->get_xy()[1]));
 }
 
-int        get_grid_w()         { return GRID_W; }
-int        get_grid_h()         { return GRID_H; }
-int**      get_grid_state()     { return GRID; }
-int        get_num_atmn()       { return NUM_PT; }
+// overload of get_dist that allows point source to be offset
+// (used primarily to shortcut toroidal transformation of map)
+double get_dist(int x, int y, Automaton* point, int px_off, int py_off)
+{
+	return hypot(double(x - (point->get_xy()[0] + px_off)), double(y - (point->get_xy()[1] + py_off)));
+}
+
+int        get_grid_w()            { return GRID_W; }
+int        get_grid_h()            { return GRID_H; }
+int**      get_grid_state()        { return GRID; }
+int        get_num_atmn()          { return NUM_PT; }
 Automaton* get_arr_atmn(int index) { return POINTS[index]; }
 
 void print_neighbors(Automaton* point)
@@ -133,7 +140,7 @@ void InitTSP()
 bool radiate()
 {
 	// create grid to track updates
-	// (contains 3d dimension which is hash for each point which radiates here during this frame)
+	// (contains 3rd dimension which is hash for each point which radiates here during this frame)
 	bool D_GRID[GRID_W][GRID_H][NUM_PT];
 	for (int i = 0; i < GRID_W; i++) { for (int j = 0; j < GRID_H; j++)
 	{
@@ -149,8 +156,20 @@ bool radiate()
 		if (GRID[i][j] == 0)
 			// check if it is within radius of points
 			for (int k = 0; k < NUM_PT; k++)
-				if (get_dist(i, j, POINTS[k]) <= frame)
-					D_GRID[i][j][k] = true; // if no other point has radiated here in this frame, occupy
+				if (get_dist(i, j, POINTS[k]) <= frame) 
+					// note that point k will radiate to this space in this frame
+					// (multiple simultaneous occupancies will be checked before updating map)
+					D_GRID[i][j][k] = true;
+
+				else if (get_dist(i, j, POINTS[k], -GRID_W, -GRID_H) <= frame ||
+						 get_dist(i, j, POINTS[k], -GRID_W,       0) <= frame ||
+						 get_dist(i, j, POINTS[k], -GRID_W,  GRID_H) <= frame ||
+						 get_dist(i, j, POINTS[k],       0,  GRID_H) <= frame ||
+						 get_dist(i, j, POINTS[k],  GRID_W,  GRID_H) <= frame ||
+						 get_dist(i, j, POINTS[k],  GRID_W,       0) <= frame ||
+						 get_dist(i, j, POINTS[k],  GRID_W, -GRID_H) <= frame ||
+						 get_dist(i, j, POINTS[k],       0, -GRID_H) <= frame) /* TOROIDAL RADIATION */
+					D_GRID[i][j][k] = true;
 	}}
 
 	// update + check if there was any change
