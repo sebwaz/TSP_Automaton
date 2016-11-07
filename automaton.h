@@ -5,6 +5,12 @@
 #include <time.h>
 #include <glut.h>
 
+//////////////////
+// ATMN GLOBALS //
+//////////////////
+
+static const int NUM_OGNS = 9;
+
 
 
 //////////////
@@ -27,8 +33,8 @@ public:
 	Node* get_neighbors(); // retuns the head of neighbor list
 
 	/* FOR HANDLING NEIGHBORS */
-	bool add_neighbor(Automaton* neighbor); // dynamically adds node to neighbor list
-	                                        // returns whether addition was successfull
+	bool add_neighbor(Automaton* neighbor, int n_origin); // dynamically adds node to neighbor list
+	                                                         // returns whether addition was successfull
 
 
 private:
@@ -42,10 +48,24 @@ private:
 class Node
 {
 public:
-	Node(Automaton* atmn) { n_atmn = atmn; };
+	Node(Automaton* atmn, int origin, double dist)
+	{
+		n_atmn   = atmn;
+		n_origin = origin;
+		n_dist   = dist; 
+	};
 
 	Automaton* n_atmn;
 	Node*      n_next = NULL;
+	int        n_origin;
+	double     n_dist;
+	// n_origin specifies which square from a 9-square extrapolation
+	// (centered on base map) the neighbor comes from
+	// |8|1|2|
+	// |7|0|3|
+	// |6|5|4|
+	// starts at center, then up and clockwise
+
 };
 
 
@@ -81,12 +101,12 @@ bool radiate();
 
 // takes the pointers to two automaton
 // adds them to each other's neighbors list
-void neighbor_two(Automaton* point_a, Automaton* point_b);
+void neighbor_two(Automaton* point_a, int a_origin, Automaton* point_b, int b_origin);
 
 // takes an array of bools of size == num_pt,
 // where true indicates that radiation has collided at given position for each
 // adds each occupant to each other's neighbors list
-void assign_neighbors(bool* neighbors);
+void assign_neighbors(bool neighbors[][NUM_OGNS]);
 
 // called by assign_neighbors() after successfully registering
 // two points as each other's neighbors to determine how

@@ -14,9 +14,9 @@ using namespace std;
 static int frame = 1;
 
 /* TSP SPEC */
-static const int GRID_W = 200;
-static const int GRID_H = 200;
-static const int NUM_PT = 7;  // TODO: colorization currently only handles 7 points 
+static const int GRID_W   = 200;
+static const int GRID_H   = 200;
+static const int NUM_PT   = 7;  // TODO: colorization currently only handles 7 points 
 
 static int**     GRID;
 Automaton*       POINTS[NUM_PT];
@@ -26,6 +26,10 @@ Automaton*       POINTS[NUM_PT];
 ////////////////////////////////
 // FXNS FOR HANDLING AUTOMATA // 
 ////////////////////////////////
+
+// forward declarations
+double get_dist(int x, int y, Automaton* point);
+double get_dist(int x, int y, Automaton* point, int px_off, int py_off);
 
 /* AUTOMATON */
 Automaton::Automaton(int x, int y, int ID) { m_pos[0] = x; m_pos[1] = y; m_ID = ID; }
@@ -44,16 +48,97 @@ int*  Automaton::get_xy()	     { return m_pos; }
 char  Automaton::get_state()     { return m_state; }
 Node* Automaton::get_neighbors() { return m_neighbors; }
 
-bool Automaton::add_neighbor(Automaton* new_neighbor)
+// TODO: add a distance value to the neighbor nodes, so that the neighbors can be sorted
+// be sure that you don't add two neighbors for the same point and origin if they just have different distances.
+// ^ in that case, keep the nearest collision distance (ideally, this would be the first one input,
+//   but I can't guarantee since updates are done in x,y order)
+bool Automaton::add_neighbor(Automaton* new_neighbor, int n_origin)
 {
-	Node* iter = m_neighbors;
+	Node* iter = this->m_neighbors;
+	Node* tail = NULL;
+	// TODO: the distance new_dist being used is wrong!!!
+	// You want distance to COLLISION, not distance to neighbor origin
+	int n_offX;
+	int n_offY;
+	switch (n_origin)
+	{
+		case 0: break;
+		case 1: n_offX = 0;       n_offY = GRID_H;  break;
+		case 2: n_offX = GRID_W;  n_offY = GRID_H;  break;
+		case 3: n_offX = GRID_W;  n_offY = 0;       break;
+		case 4: n_offX = GRID_W;  n_offY = -GRID_H; break;
+		case 5: n_offX = 0;       n_offY = -GRID_H; break;
+		case 6: n_offX = -GRID_W; n_offY = -GRID_H; break;
+		case 7: n_offX = -GRID_W; n_offY = 0;       break;
+		case 8: n_offX = -GRID_W; n_offY = GRID_H;  break;
+		default: break;
+	}
+	double new_dist = get_dist(new_neighbor->get_xy()[0], new_neighbor->get_xy()[1], this, n_offX, n_offY);
 
-	// go until you find the end, or find that there is already a match
-	// if the current spot is not a match, you have found the end, allocate new node
-	if           (iter == NULL)                                         { m_neighbors  = new Node(new_neighbor); return true; }
-	else { while (iter->n_next != NULL && iter->n_atmn != new_neighbor) { iter         = iter->n_next; }
-	if           (iter->n_atmn != new_neighbor)                         { iter->n_next = new Node(new_neighbor); return true; }
-	else                                                                { return false; }}
+	// check if empty
+	if (iter == NULL)
+	{ 
+		this->m_neighbors  = new Node(new_neighbor, n_origin, new_dist);
+		return true;
+	}
+	else
+	{
+		// iterate through list 
+		// breaking on a match on neighbor point # and origin #
+		// OR breaking on last item in list
+		while (iter->n_next != NULL && !(iter->n_atmn == new_neighbor && iter->n_origin == n_origin))
+			iter = iter->n_next;
+
+		// if you broke at the end, add a new neighbor in SORTED position
+		if (!(iter->n_atmn == new_neighbor && iter->n_origin == n_origin))
+		{
+			iter = this->m_neighbors;
+			// iterate through list, while current dist is smaller than new neighbor dist
+			while (iter->n_dist <= new_dist)
+			{
+				// if not at the end, move on
+				if (iter->n_next != NULL)
+				{
+					tail = iter;
+					iter = iter->n_next;
+				}
+				// if at end, add the new neighbor at the end
+				else
+				{
+					iter->n_next = new Node(new_neighbor, n_origin, new_dist);
+					return true;
+				}
+			}
+			// if here, we broke out before end
+			// .: current is first instance of neighbor with dist >= new
+			// insert in list before current
+			Node* to_add = new Node(new_neighbor, n_origin, new_dist);
+			to_add->n_next = iter;
+
+			// if the break happened after 1st, then link preceding to added
+			// else, added is first, so make sure m_neighbors points to it instead
+			if (tail != NULL) { tail->n_next      = to_add; }
+			else              { this->m_neighbors = to_add; }
+			return true;
+		}
+
+		// else you broke on a match, so take the one with the shortest distance
+		// if distance of match greater than distance of current, replace with current
+		else
+		{
+			
+			if (iter->n_dist >= new_dist)
+			{
+				// remove the old --- delete[](iter)
+				// then iterate back through to find the point where the new should be inserted
+				// (the neighbors list should always be sorted in terms of distance)
+				// by radiation technique, this should be given
+				// but can't be guaranteed due to update within frame in x,y order
+			}
+			// return false because no new point added, just distance updated
+			return false;
+		}
+	}	
 }
 
 
@@ -133,92 +218,110 @@ void InitTSP()
 	}
 }
 
-// TODO:
-// determine whether this can be simplified to an abstracted calculation
-// currently performs an "embodied" calculation. see basic geometry ref:
-// https://www.algebra.com/algebra/homework/Length-and-distance/Length-and-distance.faq.question.442382.html
+
 bool radiate()
 {
 	// create grid to track updates
 	// (contains 3rd dimension which is hash for each point which radiates here during this frame)
-	bool D_GRID[GRID_W][GRID_H][NUM_PT];
-	for (int i = 0; i < GRID_W; i++) { for (int j = 0; j < GRID_H; j++)
-	{
-		// initialize with all falses (no occupancy)
-		for (int k = 0; k < NUM_PT; k++) { D_GRID[i][j][k] = false; }
-	}}
+	// (contains 4th dimension which is hash for origin of each radiation)
+	bool D_GRID[GRID_W][GRID_H][NUM_PT][NUM_OGNS];
+	for (int i = 0; i < GRID_W; i++)
+		for (int j = 0; j < GRID_H; j++)
+			for (int k = 0; k < NUM_PT; k++)
+				for (int m = 0; m < NUM_OGNS; m++)
+					// initialize with all falses (no occupancies yet)
+					D_GRID[i][j][k][m] = false;
 
 	// for each grid space
-	for (int i = 0; i < GRID_W; i++) { for (int j = 0; j < GRID_H; j++)
-	{
-		// if the space was previously empty
-		// (because of this specification, we won't assign neighbors due to radial overlap disjoint areas) 
-		if (GRID[i][j] == 0)
-			// check if it is within radius of points
-			for (int k = 0; k < NUM_PT; k++)
-				if (get_dist(i, j, POINTS[k]) <= frame) 
-					// note that point k will radiate to this space in this frame
-					// (multiple simultaneous occupancies will be checked before updating map)
-					D_GRID[i][j][k] = true;
+	for (int i = 0; i < GRID_W; i++) {
+		for (int j = 0; j < GRID_H; j++) {
 
-				else if (get_dist(i, j, POINTS[k], -GRID_W, -GRID_H) <= frame ||
-						 get_dist(i, j, POINTS[k], -GRID_W,       0) <= frame ||
-						 get_dist(i, j, POINTS[k], -GRID_W,  GRID_H) <= frame ||
-						 get_dist(i, j, POINTS[k],       0,  GRID_H) <= frame ||
-						 get_dist(i, j, POINTS[k],  GRID_W,  GRID_H) <= frame ||
-						 get_dist(i, j, POINTS[k],  GRID_W,       0) <= frame ||
-						 get_dist(i, j, POINTS[k],  GRID_W, -GRID_H) <= frame ||
-						 get_dist(i, j, POINTS[k],       0, -GRID_H) <= frame) /* TOROIDAL RADIATION */
-					D_GRID[i][j][k] = true;
-	}}
+			// if the space was previously empty
+			// (because of this specification, we won't assign neighbors due to radial overlap disjoint areas) 
+			if (GRID[i][j] == 0)
 
+				// check if it is within radius of points
+				for (int k = 0; k < NUM_PT; k++)
+					if (get_dist(i, j, POINTS[k]) <= frame) 
+						// note that point k will radiate to this space in this frame
+						// (multiple simultaneous occupancies will be checked before updating map)
+						D_GRID[i][j][k][0] = true;
+
+					/* FOR TOROIDAL RADIATION: */
+					// TODO: check that ogns properly correspond to offsets
+					else if (get_dist(i, j, POINTS[k], -GRID_W, -GRID_H) <= frame) { D_GRID[i][j][k][6] = true; }
+					else if (get_dist(i, j, POINTS[k], -GRID_W,       0) <= frame) { D_GRID[i][j][k][7] = true; }
+					else if (get_dist(i, j, POINTS[k], -GRID_W,  GRID_H) <= frame) { D_GRID[i][j][k][8] = true; }
+					else if (get_dist(i, j, POINTS[k],       0,  GRID_H) <= frame) { D_GRID[i][j][k][1] = true; }
+					else if (get_dist(i, j, POINTS[k],  GRID_W,  GRID_H) <= frame) { D_GRID[i][j][k][2] = true; }
+					else if (get_dist(i, j, POINTS[k],  GRID_W,       0) <= frame) { D_GRID[i][j][k][3] = true; }
+					else if (get_dist(i, j, POINTS[k],  GRID_W, -GRID_H) <= frame) { D_GRID[i][j][k][4] = true; }
+					else if (get_dist(i, j, POINTS[k],       0, -GRID_H) <= frame) { D_GRID[i][j][k][5] = true; }				
+		}
+	}
+
+	// iterate through each x,y position
 	// update + check if there was any change
 	bool nonempty = false;
-	for (int i = 0; i < GRID_W; i++) { for (int j = 0; j < GRID_H; j++)
-	{
-		int num_occupy =  0;
-		int pnt_occupy = -1;
-		for (int k = 0; k < NUM_PT; k++)
-		{
-			// determine how many new occupancies in the position, and from what point the occupancies radiates
-			// stores only the latest point, unused if num_occupy > 1
-			if (D_GRID[i][j][k])
-			{
-				num_occupy += 1;
-				pnt_occupy  = k+1;
-				nonempty    = true;
+	for (int i = 0; i < GRID_W; i++) {
+		for (int j = 0; j < GRID_H; j++) {
+
+			int num_occupy =  0;
+			int pnt_occupy = -1;
+
+			for (int k = 0; k < NUM_PT; k++) {
+				for (int m = 0; m < NUM_OGNS; m++) {
+				// determine how many new occupancies in the position, and from what point the occupancies radiate
+				// pnt_pccupy stores only the latest point (which is useful if num_occupy == 1). unused if num_occupy > 1
+					if (D_GRID[i][j][k][m])
+					{
+						num_occupy += 1;
+						pnt_occupy  = k+1;
+						nonempty    = true;
+					}
+				}
 			}
-		}
 
 		// update point properties and grid accordingly
-		// TODO: write function that takes bool array for point and assigns the trues as neighbors
+		// TODO: pass the x,y of the collision to assign_neighbors
+		// this way, dist to collision can be used to sort neighborizations
 		if      (num_occupy  > 1) { GRID[i][j] = -1; assign_neighbors(D_GRID[i][j]); }
 		else if (num_occupy == 1) { GRID[i][j] = pnt_occupy; }
-	}}
+		}
+	}
 
 	frame++;
 	return nonempty;
 }
 
-void neighbor_two(Automaton* point_a, Automaton* point_b)
+void neighbor_two(Automaton* point_a, int a_origin, Automaton* point_b, int b_origin)
 {
-	if (point_a->add_neighbor(point_b) && point_b->add_neighbor(point_a))
+	if (point_a->add_neighbor(point_b, b_origin) && point_b->add_neighbor(point_a, a_origin))
 		handle_new_link(point_a, point_b);
 }
 
 // TODO:
 // Be sure neighbor logging happens in distance order!
-// Right now, this is not guaranteed. Two neighbors may be added
+// HOW TO FIX: figure out all neighbors to be added in a given frame, 
+// and the distance to each neighbor's collision point.
+// Then log neighbors in order of distance
+
+// Right now, distance order is not guaranteed. Two neighbors may be added
 // in the same frame, and their order depends only on grid check order.
 // This may be problematic for automata's linking behavior.
 
 // Moreover, neighbor_two() is often called when the neighbors are not new
 // Is this problematic for linking behavior?
-void assign_neighbors(bool* neighbors)
+void assign_neighbors(bool neighbors[][NUM_OGNS])
 {
+	// iterates through every pair of points (no identity pairings)
 	for (int i = 0; i < NUM_PT; i++) { for (int j = i + 1; j < NUM_PT; j++) {
-		if (neighbors[i] && neighbors[j])
-			neighbor_two(POINTS[i], POINTS[j]);
+		// and assigns as neighbors any origin combos within those pairings
+		for (int k = 0; k < NUM_OGNS; k++) { for (int m = 0; m < NUM_OGNS; m++) {
+				if (neighbors[i][k] && neighbors[j][m])
+					// TODO: given the way these are represented in D_GRID, design new fxn def for handling more useful args
+					neighbor_two(POINTS[i], k, POINTS[j], m);
+		}}
 	}}
 }
 
