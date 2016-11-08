@@ -71,7 +71,10 @@ bool Automaton::add_neighbor(Automaton* new_neighbor, int n_origin, int coll_x, 
 		// breaking on a match on neighbor point # and origin #
 		// OR breaking on last item in list
 		while (iter->n_next != NULL && !(iter->n_atmn == new_neighbor && iter->n_origin == n_origin))
+		{
+			tail = iter;
 			iter = iter->n_next;
+		}
 
 		// if you broke at the end, add a new neighbor in SORTED position
 		if (!(iter->n_atmn == new_neighbor && iter->n_origin == n_origin))
@@ -107,20 +110,49 @@ bool Automaton::add_neighbor(Automaton* new_neighbor, int n_origin, int coll_x, 
 		}
 
 		// else you broke on a match, so take the one with the shortest distance
-		
 		else
 		{
-			// if distance of match greater than distance of current, replace with current
+			/*
+			// if distance of match greater than distance of current, delete old, replace with current
 			// else, do nothing
-			if (iter->n_dist >= new_dist)
+			if (iter->n_dist > new_dist)
 			{
-				// remove the old --- delete[](iter)
+				// delete the old
+				if (tail != NULL) { tail->n_next = iter->n_next; }
+				delete[](iter);
+				
 				// then iterate back through to find the point where the new should be inserted
-				// (the neighbors list should always be sorted in terms of distance)
-				// by radiation technique, this should be given
-				// but can't be guaranteed due to update within frame in x,y order
+				// TODO: following code taken directly from if-case above. optimize to reduce redundant code
+				iter = this->m_neighbors;
+				while (iter->n_dist <= new_dist)
+				{
+					// if not at the end, move on
+					if (iter->n_next != NULL)
+					{
+						tail = iter;
+						iter = iter->n_next;
+					}
+					// if at end, add the new neighbor at the end
+					else
+					{
+						iter->n_next = new Node(new_neighbor, n_origin, new_dist);
+						return true;
+					}
+				}
+				// if here, we broke out before end
+				// .: current is first instance of neighbor with dist >= new
+				// insert in list before current
+				Node* to_add = new Node(new_neighbor, n_origin, new_dist);
+				to_add->n_next = iter;
+
+				// if the break happened after 1st, then link preceding to added
+				// else, added is first, so make sure m_neighbors points to it instead
+				if (tail != NULL) { tail->n_next      = to_add; }
+				else              { this->m_neighbors = to_add; }
 			}
 			// return false because no new point added, just distance updated
+			// TODO: returning false means handle_new_link() is not called. Why use handle_new_link?
+			*/
 			return false;
 		}
 	}	
@@ -316,7 +348,7 @@ void neighbor_two(Automaton* point_a, int a_origin, Automaton* point_b, int b_or
 	}
 	// add_neighbor() assumes calling atmn is at origin
 	// so we need to translate a/b relation (and thus coll_x, coll_y) to call add_neighbor() with 4-centered origins
-	if (point_a->add_neighbor(point_b, b_origin, coll_x-b_offX, coll_y-b_offY) && point_b->add_neighbor(point_a, a_origin, coll_x-a_offX, coll_y-a_offY))
+	if (point_a->add_neighbor(point_b, b_origin, coll_x+b_offX, coll_y+b_offY) && point_b->add_neighbor(point_a, a_origin, coll_x+a_offX, coll_y+a_offY))
 		handle_new_link(point_a, point_b);
 }
 
