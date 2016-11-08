@@ -52,28 +52,12 @@ Node* Automaton::get_neighbors() { return m_neighbors; }
 // be sure that you don't add two neighbors for the same point and origin if they just have different distances.
 // ^ in that case, keep the nearest collision distance (ideally, this would be the first one input,
 //   but I can't guarantee since updates are done in x,y order)
-bool Automaton::add_neighbor(Automaton* new_neighbor, int n_origin)
+bool Automaton::add_neighbor(Automaton* new_neighbor, int n_origin, int coll_x, int coll_y)
 {
 	Node* iter = this->m_neighbors;
 	Node* tail = NULL;
-	// TODO: the distance new_dist being used is wrong!!!
-	// You want distance to COLLISION, not distance to neighbor origin
-	int n_offX;
-	int n_offY;
-	switch (n_origin)
-	{
-		case 0: break;
-		case 1: n_offX = 0;       n_offY = GRID_H;  break;
-		case 2: n_offX = GRID_W;  n_offY = GRID_H;  break;
-		case 3: n_offX = GRID_W;  n_offY = 0;       break;
-		case 4: n_offX = GRID_W;  n_offY = -GRID_H; break;
-		case 5: n_offX = 0;       n_offY = -GRID_H; break;
-		case 6: n_offX = -GRID_W; n_offY = -GRID_H; break;
-		case 7: n_offX = -GRID_W; n_offY = 0;       break;
-		case 8: n_offX = -GRID_W; n_offY = GRID_H;  break;
-		default: break;
-	}
-	double new_dist = get_dist(new_neighbor->get_xy()[0], new_neighbor->get_xy()[1], this, n_offX, n_offY);
+	// get distance to collision
+	double new_dist = hypot(double(coll_x - this->get_xy()[0]), double(coll_y - this->get_xy()[1]));
 
 	// check if empty
 	if (iter == NULL)
@@ -123,10 +107,11 @@ bool Automaton::add_neighbor(Automaton* new_neighbor, int n_origin)
 		}
 
 		// else you broke on a match, so take the one with the shortest distance
-		// if distance of match greater than distance of current, replace with current
+		
 		else
 		{
-			
+			// if distance of match greater than distance of current, replace with current
+			// else, do nothing
 			if (iter->n_dist >= new_dist)
 			{
 				// remove the old --- delete[](iter)
@@ -172,8 +157,8 @@ void print_neighbors(Automaton* point)
 
 	// print out list in order
 	if           (iter == NULL)         { cout << endl; return; }
-	else { while (iter->n_next != NULL) { cout << iter->n_atmn->get_ID() <<  " "; iter = iter->n_next; }
-										  cout << iter->n_atmn->get_ID() << endl; }
+	else { while (iter->n_next != NULL) { cout << iter->n_atmn->get_ID() << "_" << iter->n_origin <<  " "; iter = iter->n_next; }
+										  cout << iter->n_atmn->get_ID() << "_" << iter->n_origin << endl; }
 }
 
 void print_neighbors_all() { for (int i = 0; i < NUM_PT; i++) { print_neighbors(POINTS[i]); } cout << endl; }
@@ -245,17 +230,16 @@ bool radiate()
 					if (get_dist(i, j, POINTS[k]) <= frame) 
 						// note that point k will radiate to this space in this frame
 						// (multiple simultaneous occupancies will be checked before updating map)
-						D_GRID[i][j][k][0] = true;
+						D_GRID[i][j][k][4] = true;
 
 					/* FOR TOROIDAL RADIATION: */
-					// TODO: check that ogns properly correspond to offsets
-					else if (get_dist(i, j, POINTS[k], -GRID_W, -GRID_H) <= frame) { D_GRID[i][j][k][6] = true; }
-					else if (get_dist(i, j, POINTS[k], -GRID_W,       0) <= frame) { D_GRID[i][j][k][7] = true; }
-					else if (get_dist(i, j, POINTS[k], -GRID_W,  GRID_H) <= frame) { D_GRID[i][j][k][8] = true; }
-					else if (get_dist(i, j, POINTS[k],       0,  GRID_H) <= frame) { D_GRID[i][j][k][1] = true; }
-					else if (get_dist(i, j, POINTS[k],  GRID_W,  GRID_H) <= frame) { D_GRID[i][j][k][2] = true; }
-					else if (get_dist(i, j, POINTS[k],  GRID_W,       0) <= frame) { D_GRID[i][j][k][3] = true; }
-					else if (get_dist(i, j, POINTS[k],  GRID_W, -GRID_H) <= frame) { D_GRID[i][j][k][4] = true; }
+					else if (get_dist(i, j, POINTS[k], -GRID_W, -GRID_H) <= frame) { D_GRID[i][j][k][2] = true; }
+					else if (get_dist(i, j, POINTS[k], -GRID_W,       0) <= frame) { D_GRID[i][j][k][1] = true; }
+					else if (get_dist(i, j, POINTS[k], -GRID_W,  GRID_H) <= frame) { D_GRID[i][j][k][0] = true; }
+					else if (get_dist(i, j, POINTS[k],       0,  GRID_H) <= frame) { D_GRID[i][j][k][3] = true; }
+					else if (get_dist(i, j, POINTS[k],  GRID_W,  GRID_H) <= frame) { D_GRID[i][j][k][6] = true; }
+					else if (get_dist(i, j, POINTS[k],  GRID_W,       0) <= frame) { D_GRID[i][j][k][7] = true; }
+					else if (get_dist(i, j, POINTS[k],  GRID_W, -GRID_H) <= frame) { D_GRID[i][j][k][8] = true; }
 					else if (get_dist(i, j, POINTS[k],       0, -GRID_H) <= frame) { D_GRID[i][j][k][5] = true; }				
 		}
 	}
@@ -285,7 +269,7 @@ bool radiate()
 		// update point properties and grid accordingly
 		// TODO: pass the x,y of the collision to assign_neighbors
 		// this way, dist to collision can be used to sort neighborizations
-		if      (num_occupy  > 1) { GRID[i][j] = -1; assign_neighbors(D_GRID[i][j]); }
+		if      (num_occupy  > 1) { GRID[i][j] = -1; assign_neighbors(D_GRID[i][j], i, j); }
 		else if (num_occupy == 1) { GRID[i][j] = pnt_occupy; }
 		}
 	}
@@ -294,9 +278,45 @@ bool radiate()
 	return nonempty;
 }
 
-void neighbor_two(Automaton* point_a, int a_origin, Automaton* point_b, int b_origin)
+void neighbor_two(Automaton* point_a, int a_origin, Automaton* point_b, int b_origin, int coll_x, int coll_y)
 {
-	if (point_a->add_neighbor(point_b, b_origin) && point_b->add_neighbor(point_a, a_origin))
+	int a_abs_ogn = a_origin;
+	int b_abs_ogn = b_origin;
+
+	int a_offX;
+	int a_offY;
+	switch (b_abs_ogn)
+	{
+		case 0: a_origin +=  4; a_offX =  GRID_W; a_offY = -GRID_H; break;
+		case 1: a_origin +=  3; a_offX =  GRID_W; a_offY = 0;       break;
+		case 2: a_origin +=  2; a_offX =  GRID_W; a_offY =  GRID_H; break;
+		case 3: a_origin +=  1; a_offX = 0;       a_offY = -GRID_H; break;
+		case 4: a_origin +=  0; a_offX = 0;       a_offY = 0;       break;
+		case 5: a_origin += -1; a_offX = 0;       a_offY =  GRID_H; break;
+		case 6: a_origin += -2; a_offX = -GRID_W; a_offY = -GRID_H; break;
+		case 7: a_origin += -3; a_offX = -GRID_W; a_offY = 0;       break;
+		case 8: a_origin += -4; a_offX = -GRID_W; a_offY =  GRID_H; break;
+		default: break;
+	}
+
+	int b_offX;
+	int b_offY;
+	switch (a_abs_ogn)
+	{
+		case 0: b_origin +=  4; b_offX =  GRID_W; b_offY = -GRID_H; break;
+		case 1: b_origin +=  3; b_offX =  GRID_W; b_offY = 0;       break;
+		case 2: b_origin +=  2; b_offX =  GRID_W; b_offY =  GRID_H; break;
+		case 3: b_origin +=  1; b_offX = 0;       b_offY = -GRID_H; break;
+		case 4: b_origin +=  0; b_offX = 0;       b_offY = 0;       break;
+		case 5: b_origin += -1; b_offX = 0;       b_offY =  GRID_H; break;
+		case 6: b_origin += -2; b_offX = -GRID_W; b_offY = -GRID_H; break;
+		case 7: b_origin += -3; b_offX = -GRID_W; b_offY = 0;       break;
+		case 8: b_origin += -4; b_offX = -GRID_W; b_offY =  GRID_H; break;
+		default: break;
+	}
+	// add_neighbor() assumes calling atmn is at origin
+	// so we need to translate a/b relation (and thus coll_x, coll_y) to call add_neighbor() with 4-centered origins
+	if (point_a->add_neighbor(point_b, b_origin, coll_x-b_offX, coll_y-b_offY) && point_b->add_neighbor(point_a, a_origin, coll_x-a_offX, coll_y-a_offY))
 		handle_new_link(point_a, point_b);
 }
 
@@ -312,7 +332,7 @@ void neighbor_two(Automaton* point_a, int a_origin, Automaton* point_b, int b_or
 
 // Moreover, neighbor_two() is often called when the neighbors are not new
 // Is this problematic for linking behavior?
-void assign_neighbors(bool neighbors[][NUM_OGNS])
+void assign_neighbors(bool neighbors[][NUM_OGNS], int coll_x, int coll_y)
 {
 	// iterates through every pair of points (no identity pairings)
 	for (int i = 0; i < NUM_PT; i++) { for (int j = i + 1; j < NUM_PT; j++) {
@@ -320,7 +340,7 @@ void assign_neighbors(bool neighbors[][NUM_OGNS])
 		for (int k = 0; k < NUM_OGNS; k++) { for (int m = 0; m < NUM_OGNS; m++) {
 				if (neighbors[i][k] && neighbors[j][m])
 					// TODO: given the way these are represented in D_GRID, design new fxn def for handling more useful args
-					neighbor_two(POINTS[i], k, POINTS[j], m);
+					neighbor_two(POINTS[i], k, POINTS[j], m, coll_x, coll_y);
 		}}
 	}}
 }
