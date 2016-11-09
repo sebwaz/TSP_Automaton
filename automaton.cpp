@@ -80,6 +80,7 @@ bool Automaton::add_neighbor(Automaton* new_neighbor, int n_origin, int coll_x, 
 		if (!(iter->n_atmn == new_neighbor && iter->n_origin == n_origin))
 		{
 			iter = this->m_neighbors;
+			tail = NULL;
 			// iterate through list, while current dist is smaller than new neighbor dist
 			while (iter->n_dist <= new_dist)
 			{
@@ -109,50 +110,64 @@ bool Automaton::add_neighbor(Automaton* new_neighbor, int n_origin, int coll_x, 
 			return true;
 		}
 
+		// TODO: finish this min(dupes) functionality. SOMETHING IN HERE CAUSES AN INFINITE LOOP
 		// else you broke on a match, so take the one with the shortest distance
 		else
 		{
-			/*
-			// if distance of match greater than distance of current, delete old, replace with current
+			// if distance of match greater than distance of current, extract old, change values to current, reinsert
 			// else, do nothing
 			if (iter->n_dist > new_dist)
 			{
-				// delete the old
-				if (tail != NULL) { tail->n_next = iter->n_next; }
-				delete[](iter);
-				
-				// then iterate back through to find the point where the new should be inserted
-				// TODO: following code taken directly from if-case above. optimize to reduce redundant code
-				iter = this->m_neighbors;
-				while (iter->n_dist <= new_dist)
+				// if match is not the first member
+				if (tail != NULL)
 				{
-					// if not at the end, move on
-					if (iter->n_next != NULL)
-					{
-						tail = iter;
-						iter = iter->n_next;
-					}
-					// if at end, add the new neighbor at the end
-					else
-					{
-						iter->n_next = new Node(new_neighbor, n_origin, new_dist);
-						return true;
-					}
-				}
-				// if here, we broke out before end
-				// .: current is first instance of neighbor with dist >= new
-				// insert in list before current
-				Node* to_add = new Node(new_neighbor, n_origin, new_dist);
-				to_add->n_next = iter;
+					Node* reclaimed;
+					tail->n_next      = iter->n_next;
+					reclaimed         = iter;
+					reclaimed->n_dist = new_dist;
+					reclaimed->n_next = NULL;
 
-				// if the break happened after 1st, then link preceding to added
-				// else, added is first, so make sure m_neighbors points to it instead
-				if (tail != NULL) { tail->n_next      = to_add; }
-				else              { this->m_neighbors = to_add; }
+					// then iterate back through to find the point where the new should be inserted
+					// TODO: following code taken directly from if-case above. optimize to reduce redundant code
+					iter = this->m_neighbors;
+					tail = NULL;
+					while (iter->n_dist <= new_dist)
+					{
+						// if not at the end, move on
+						if (iter->n_next != NULL)
+						{
+							tail = iter;
+							iter = iter->n_next;
+						}
+						// if at end, add the new neighbor at the end
+						else
+						{
+							iter->n_next = reclaimed;
+							// return false because no new point added, just distance updated
+							// TODO: returning false means handle_new_link() is not called. Why use handle_new_link?
+							return false;
+						}
+					}
+					// if here, we broke out before end
+					// .: current is first instance of neighbor with dist >= new
+					// insert in list before current
+					reclaimed->n_next = iter;
+
+					// if the break happened after 1st, then link preceding to added
+					// else, added is first, so make sure m_neighbors points to it instead
+					if (tail != NULL) { tail->n_next      = reclaimed; }
+					else              { this->m_neighbors = reclaimed; }
+					return false;
+				}
+				// else match is the first member
+				else
+				{
+					iter->n_dist = new_dist;
+					return false;
+				}
 			}
 			// return false because no new point added, just distance updated
 			// TODO: returning false means handle_new_link() is not called. Why use handle_new_link?
-			*/
 			return false;
 		}
 	}	
