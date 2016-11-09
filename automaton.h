@@ -10,6 +10,8 @@
 //////////////////
 
 static const int NUM_OGNS = 9;
+static const int GRID_W = 200;
+static const int GRID_H = 200;
 
 
 

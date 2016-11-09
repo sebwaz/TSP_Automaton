@@ -14,8 +14,6 @@ using namespace std;
 static int frame = 1;
 
 /* TSP SPEC */
-static const int GRID_W   = 200;
-static const int GRID_H   = 200;
 static const int NUM_PT   = 7;  // TODO: colorization currently only handles 7 points 
 
 static int**     GRID;
@@ -48,10 +46,6 @@ int*  Automaton::get_xy()	     { return m_pos; }
 char  Automaton::get_state()     { return m_state; }
 Node* Automaton::get_neighbors() { return m_neighbors; }
 
-// TODO: add a distance value to the neighbor nodes, so that the neighbors can be sorted
-// be sure that you don't add two neighbors for the same point and origin if they just have different distances.
-// ^ in that case, keep the nearest collision distance (ideally, this would be the first one input,
-//   but I can't guarantee since updates are done in x,y order)
 bool Automaton::add_neighbor(Automaton* new_neighbor, int n_origin, int coll_x, int coll_y)
 {
 	Node* iter = this->m_neighbors;
@@ -110,8 +104,8 @@ bool Automaton::add_neighbor(Automaton* new_neighbor, int n_origin, int coll_x, 
 			return true;
 		}
 
-		// TODO: finish this min(dupes) functionality. SOMETHING IN HERE CAUSES AN INFINITE LOOP
 		// else you broke on a match, so take the one with the shortest distance
+		// TODO: verify this works because you fixed it drunk
 		else
 		{
 			// if distance of match greater than distance of current, extract old, change values to current, reinsert
@@ -121,6 +115,7 @@ bool Automaton::add_neighbor(Automaton* new_neighbor, int n_origin, int coll_x, 
 				// if match is not the first member
 				if (tail != NULL)
 				{
+					// extract the match
 					Node* reclaimed;
 					tail->n_next      = iter->n_next;
 					reclaimed         = iter;
@@ -211,6 +206,7 @@ void print_neighbors(Automaton* point)
 void print_neighbors_all() { for (int i = 0; i < NUM_PT; i++) { print_neighbors(POINTS[i]); } cout << endl; }
 
 
+
 /////////////////////////
 // FXNS FOR MANIP GRID //
 /////////////////////////
@@ -249,7 +245,6 @@ void InitTSP()
 		GRID[x][y] = i + 1;
 	}
 }
-
 
 bool radiate()
 {

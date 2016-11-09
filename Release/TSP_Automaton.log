@@ -1,6 +1,9 @@
 ﻿  automaton.cpp
+  main.cpp
   Generating code
-  All 41 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  2 of 41 functions ( 4.9%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    8 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
   TSP_Automaton.vcxproj -> C:\Users\Sebastian\documents\visual studio 2015\Projects\TSP_Automaton\Release\TSP_Automaton.exe
   TSP_Automaton.vcxproj -> C:\Users\Sebastian\documents\visual studio 2015\Projects\TSP_Automaton\Release\TSP_Automaton.pdb (Full PDB)

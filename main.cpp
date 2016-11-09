@@ -101,22 +101,55 @@ void Draw()
 		glLineWidth(0.01);
 		Node* iter = point->get_neighbors();
 
+		// TODO: draw connections for non 4-centered neighbors to their non-4 origins
+		// TODO: eliminate switch redundancy
+		// TODO: verify this works because you did it drunk
 		if           (iter         == NULL) {}
 		else { while (iter->n_next != NULL) {
 			   // draw line to final cxn
+			   int n_offX;
+			   int n_offY;
+			   switch (iter->n_origin)
+			   {
+					case 0: n_offX = -GRID_W; n_offY =  GRID_H; break;
+					case 1: n_offX = -GRID_W; n_offY = 0;       break;
+					case 2: n_offX = -GRID_W; n_offY = -GRID_H; break;
+					case 3: n_offX = 0;       n_offY =  GRID_H; break;
+					case 4: n_offX = 0;       n_offY = 0;       break;
+					case 5: n_offX = 0;       n_offY = -GRID_H; break;
+					case 6: n_offX =  GRID_W; n_offY =  GRID_H; break;
+					case 7: n_offX =  GRID_W; n_offY = 0;       break;
+					case 8: n_offX =  GRID_W; n_offY = -GRID_H; break;
+					default: break;
+			   }
 			   glBegin(GL_LINES);
-			   glVertex3f(0.6 + UNIT_SPAN*(x + 0.5),                         0.35 + UNIT_SPAN*(y + 0.5),                         0.0);
-			   glVertex3f(0.6 + UNIT_SPAN*(iter->n_atmn->get_xy()[0] + 0.5), 0.35 + UNIT_SPAN*(iter->n_atmn->get_xy()[1] + 0.5), 0.0);
+			   glVertex3f(0.6 + UNIT_SPAN*(x + 0.5),                                  0.35 + UNIT_SPAN*(y + 0.5),                                  0.0);
+			   glVertex3f(0.6 + UNIT_SPAN*(iter->n_atmn->get_xy()[0] + n_offX + 0.5), 0.35 + UNIT_SPAN*(iter->n_atmn->get_xy()[1] + n_offY + 0.5), 0.0);
 			   glEnd();
 
 			   // go to next cxn
 			   iter = iter->n_next; }
 		
 			   // draw line to cxn
+			   int n_offX;
+			   int n_offY;
+			   switch (iter->n_origin)
+			   {
+					case 0: n_offX = -GRID_W; n_offY =  GRID_H; break;
+					case 1: n_offX = -GRID_W; n_offY = 0;       break;
+					case 2: n_offX = -GRID_W; n_offY = -GRID_H; break;
+					case 3: n_offX = 0;       n_offY =  GRID_H; break;
+					case 4: n_offX = 0;       n_offY = 0;       break;
+					case 5: n_offX = 0;       n_offY = -GRID_H; break;
+					case 6: n_offX =  GRID_W; n_offY =  GRID_H; break;
+					case 7: n_offX =  GRID_W; n_offY = 0;       break;
+					case 8: n_offX =  GRID_W; n_offY = -GRID_H; break;
+					default: break;
+			   }
 			   glBegin(GL_LINES);
-			   glVertex3f(0.6 + UNIT_SPAN*(x + 0.5),                         0.35 + UNIT_SPAN*(y + 0.5),                         0.0);
-			   glVertex3f(0.6 + UNIT_SPAN*(iter->n_atmn->get_xy()[0] + 0.5), 0.35 + UNIT_SPAN*(iter->n_atmn->get_xy()[1] + 0.5), 0.0);
-		       glEnd();
+			   glVertex3f(0.6 + UNIT_SPAN*(x + 0.5),                                  0.35 + UNIT_SPAN*(y + 0.5),                                  0.0);
+			   glVertex3f(0.6 + UNIT_SPAN*(iter->n_atmn->get_xy()[0] + n_offX + 0.5), 0.35 + UNIT_SPAN*(iter->n_atmn->get_xy()[1] + n_offY + 0.5), 0.0);
+			   glEnd();
 		}
 	}
 
