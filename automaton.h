@@ -29,22 +29,25 @@ class Automaton
 public:
 	Automaton(int x, int y, int ID);
 	~Automaton();
-	int   get_ID();
-	int*  get_xy();
-	char  get_state();
-	Node* get_neighbors(); // retuns the head of neighbor list
+	int    get_ID();
+	int*   get_xy();
+	char   get_state();
+	Node*  get_neighbors(); // returns the head of neighbor list
+	Node** get_links();
 
 	/* FOR HANDLING NEIGHBORS */
 	bool add_neighbor(Automaton* neighbor, int n_origin, int coll_x, int coll_y); // dynamically adds node to neighbor list
-																				  // returns whether addition was successfull
+																				  // returns whether addition was successfully
+	/* FOR HANDLING LINKS */
+	bool  add_link(Node* link);
 
 
 private:
-	char	   m_state = 'n';
-	int		   m_pos[2];
-	int        m_ID;
-	Automaton* m_links[2]  = { NULL, NULL };
-	Node*      m_neighbors =   NULL;
+	char  m_state = 'n';
+	int   m_pos[2];
+	int   m_ID;
+	Node* m_links[2]  = { NULL, NULL };
+	Node* m_neighbors =   NULL;
 };
 
 class Node
@@ -63,11 +66,10 @@ public:
 	double     n_dist;
 	// n_origin specifies which square from a 9-square extrapolation
 	// (centered on base map) the neighbor comes from
-	// |8|1|2|
-	// |7|0|3|
-	// |6|5|4|
+	// |0|3|6|
+	// |1|4|7|
+	// |2|5|8|
 	// starts at center, then up and clockwise
-
 };
 
 
@@ -84,7 +86,6 @@ int        get_num_atmn();
 Automaton* get_arr_atmn(int index);
 void       print_neighbors(Automaton* point);
 void       print_neighbors_all();
-
 
 
 

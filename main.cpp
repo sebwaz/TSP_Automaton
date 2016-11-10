@@ -99,9 +99,9 @@ void Draw()
 
 		// PRINT CXNS
 		glLineWidth(0.01);
+		glColor3f(0.25, 0.25, 0.25);
 		Node* iter = point->get_neighbors();
 
-		// TODO: draw connections for non 4-centered neighbors to their non-4 origins
 		// TODO: eliminate switch redundancy
 		// TODO: verify this works because you did it drunk
 		if           (iter         == NULL) {}
@@ -150,6 +150,35 @@ void Draw()
 			   glVertex3f(0.6 + UNIT_SPAN*(x + 0.5),                                  0.35 + UNIT_SPAN*(y + 0.5),                                  0.0);
 			   glVertex3f(0.6 + UNIT_SPAN*(iter->n_atmn->get_xy()[0] + n_offX + 0.5), 0.35 + UNIT_SPAN*(iter->n_atmn->get_xy()[1] + n_offY + 0.5), 0.0);
 			   glEnd();
+		}
+
+		// PRINT LINKS
+		// TODO: verify this works properly, reduce switch redundancy
+		// TODO: figure out why link lines are sometimes drawn underneath neighbor/cxn lines
+		glLineWidth(3);
+		glColor3f(1.0, 1.0, 1.0);
+		for (int j = 0; j < 2 && point->get_links()[j] != NULL; j++)
+		{
+			Node* link = point->get_links()[j];
+			int l_offX;
+			int l_offY;
+			switch (link->n_origin)
+			{
+				case 0: l_offX = -GRID_W; l_offY =  GRID_H; break;
+				case 1: l_offX = -GRID_W; l_offY = 0;       break;
+				case 2: l_offX = -GRID_W; l_offY = -GRID_H; break;
+				case 3: l_offX = 0;       l_offY =  GRID_H; break;
+				case 4: l_offX = 0;       l_offY = 0;       break;
+				case 5: l_offX = 0;       l_offY = -GRID_H; break;
+				case 6: l_offX = GRID_W;  l_offY =  GRID_H; break;
+				case 7: l_offX = GRID_W;  l_offY = 0;       break;
+				case 8: l_offX = GRID_W;  l_offY = -GRID_H; break;
+				default: break;
+			}
+			glBegin(GL_LINES);
+			glVertex3f(0.6 + UNIT_SPAN*(x + 0.5),                                  0.35 + UNIT_SPAN*(y + 0.5),                                  0.0);
+			glVertex3f(0.6 + UNIT_SPAN*(link->n_atmn->get_xy()[0] + l_offX + 0.5), 0.35 + UNIT_SPAN*(link->n_atmn->get_xy()[1] + l_offY + 0.5), 0.0);
+			glEnd();
 		}
 	}
 
