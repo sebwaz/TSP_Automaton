@@ -34,13 +34,14 @@ public:
 	char   get_state();
 	Node*  get_neighbors(); // returns the head of neighbor list
 	Node** get_links();
+	int    get_num_links();
 
 	/* FOR HANDLING NEIGHBORS */
-	bool add_neighbor(Automaton* neighbor, int n_origin, int coll_x, int coll_y); // dynamically adds node to neighbor list
-																				  // returns whether addition was successfully
-	/* FOR HANDLING LINKS */
-	bool  add_link(Node* link);
+	bool add_neighbor(Automaton* neighbor, int n_origin, double c_dist); // dynamically adds node to neighbor list
+																         // returns whether addition was successfully
 
+	bool add_link(Node* link); // at the moment, only adds a link when there is an empty link slot
+									// else does nothing and returns false
 
 private:
 	char  m_state = 'n';
@@ -114,6 +115,6 @@ void assign_neighbors(bool neighbors[][NUM_OGNS], int coll_x, int coll_y);
 // called by assign_neighbors() after successfully registering
 // two points as each other's neighbors to determine how
 // automaton should interact with new neighbor
-void handle_new_link(Automaton* point_a, Automaton* point_b);
+void assign_links();
 
 #endif
