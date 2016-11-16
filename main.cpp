@@ -20,6 +20,7 @@ static bool    done         = false;
 
 static void timerCallback(int value) {
 	if (!done) { done = !radiate(); print_neighbors_all(); }
+	else	   { assign_links(); }
 	glutPostRedisplay();
 }
 

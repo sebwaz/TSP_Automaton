@@ -65,12 +65,16 @@ public:
 	Node*      n_next = NULL;
 	int        n_origin;
 	double     n_dist;
+	bool	   n_excited = false;
+
 	// n_origin specifies which square from a 9-square extrapolation
 	// (centered on base map) the neighbor comes from
 	// |0|3|6|
 	// |1|4|7|
 	// |2|5|8|
 	// starts at center, then up and clockwise
+
+	// n_excited is important for linking behavior
 };
 
 
