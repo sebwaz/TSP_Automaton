@@ -187,7 +187,8 @@ bool Automaton::add_link(Node* link)
 		{
 			m_links[i] = link;
 			cout << "Linked " << this->get_ID() << " to " << link->n_atmn->get_ID() << endl;
-			return true; }
+			return true;
+		}
 	}
 }
 
@@ -425,7 +426,6 @@ void link_two(Node* point_a, Node* point_b)
 	{
 		Automaton* joint = (point_a->n_atmn->get_num_links() == 2) ? point_a->n_atmn : point_b->n_atmn;
 		Automaton* end   = (point_a->n_atmn->get_num_links() == 2) ? point_b->n_atmn : point_a->n_atmn;
-		double joint_to_end = get_dist(point_a->n_atmn->get_xy()[0], point_a->n_atmn->get_xy()[1], point_b->n_atmn);
 
 		cout << joint->get_ID() << " is joint. " << end->get_ID() << " is end." << endl;
 		int long_l_pos  = (joint->get_links()[0]->n_dist > joint->get_links()[1]->n_dist) ? 0 : 1;
@@ -441,13 +441,32 @@ void link_two(Node* point_a, Node* point_b)
 		// TODO: how to choose if a link neighbors multiple ends? (for now, more distant neighbor first)
 		while (long_l_neighbs != NULL)
 		{
+			// we want to be sure that long_l_neighbs is not already a link of joint_long_l
+			bool is_new_link = true;
+			for (int i = 0; i < 2; i++)
+				if (joint_long_l->get_links()[i] != NULL)
+					if (joint_long_l->get_links()[i] == long_l_neighbs)
+						is_new_link = false;
+
+			// we want to be sure that, if long_l_neighbs is the end, it is 0-linked
+			bool end_check;
+			if (long_l_neighbs->n_atmn == end)
+			{
+				if (long_l_neighbs->n_atmn->get_num_links() == 0) { end_check = true; }
+				else                                              { end_check = false; }
+			}
+			else
+			{
+				end_check = true;
+			}
+
 			// TODO: joint_long_l's neighbor should be at a distance less than distance between joint and end
 			// this is because we don't want to call assign_links multiple times, (i.e. between frames)
 			// so we only want neighbors that would be discovered at the time link is being attempted between joint and end
-			double link_to_neighbor = get_dist(long_l_neighbs->n_atmn->get_xy()[0], long_l_neighbs->n_atmn->get_xy()[1], joint_long_l);
 
-			// if joint_long_l has a neighbor that is an end, and is within the same distance as the distance between joint and end
-			if (long_l_neighbs->n_atmn->get_num_links() < 2 && link_to_neighbor <= joint_to_end)
+			// if joint_long_l has a neighbor that is an end, and is within the same COLLISION distance as the distance between joint and end
+			// point_a is chosen for getting the joint-to-end collision distance arbitrarily; using point_b should give same value
+			if (long_l_neighbs->n_atmn->get_num_links() < 2 && long_l_neighbs->n_dist <= point_a->n_dist && is_new_link && end_check)
 			{
 				// add joint_long_l as a link to that neighbor
 				Node* l_nearest_neighb_l = long_l_neighbs->n_atmn->get_neighbors();
@@ -457,13 +476,12 @@ void link_two(Node* point_a, Node* point_b)
 						l_nearest_neighb_l->n_origin == abs(long_l_neighbs->n_origin - 8))
 					{
 						long_l_neighbs->n_atmn->add_link(l_nearest_neighb_l);
-						cout << long_l_neighbs->n_atmn->get_ID() << " linked to " << l_nearest_neighb_l->n_atmn->get_ID() << endl;
 						break;
 					}
 					l_nearest_neighb_l = l_nearest_neighb_l->n_next;
 				}
 
-				// link joint_long_l to the neighbor that just linked to it
+				// link joint_long_l to the neighbor that just linked to it, by overwriting its link to joint
 				for (int i = 0; i < 2; i++)
 					if (joint_long_l->get_links()[i]->n_atmn   == joint &&
 						joint_long_l->get_links()[i]->n_origin == abs(joint->get_links()[long_l_pos]->n_origin - 8))
@@ -474,6 +492,7 @@ void link_two(Node* point_a, Node* point_b)
 					}
 				
 				// link joint to the end, and end to joint
+				// TODO: this doesn't work if end was the neighbor of joint_long_l and already had 1 link
 				joint->get_links()[long_l_pos] = (point_a->n_atmn == end) ? point_a : point_b;
 				cout << joint->get_ID() << " linked to " << joint->get_links()[long_l_pos]->n_atmn->get_ID() << endl;
 
