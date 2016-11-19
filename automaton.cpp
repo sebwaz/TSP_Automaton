@@ -16,13 +16,10 @@ static int  frame      = 1;
 static bool links_done = false;
 
 /* TSP SPEC */
-static const int NUM_PT   = 7;  // TODO: colorization currently only handles 7 points 
+static const int NUM_PT   = 12;  // TODO: colorization currently only handles 7 points 
 
 static int**     GRID;
 Automaton*       POINTS[NUM_PT];
-
-
-
 
 
 
@@ -186,7 +183,7 @@ bool Automaton::add_link(Node* link)
 		else if (m_links[i] == NULL)
 		{
 			m_links[i] = link;
-			cout << "Linked " << this->get_ID() << " to " << link->n_atmn->get_ID() << endl;
+			cout << this->get_ID() << " linked to " << link->n_atmn->get_ID() << endl;
 			return true;
 		}
 	}
@@ -397,8 +394,7 @@ void neighbor_two(Automaton* point_a, int a_origin, Automaton* point_b, int b_or
 	point_b->add_neighbor(point_a, a_origin, c_dist);
 }
 
-// TODO: link_two calling happens over and over again for pairs that already exist
-// TODO: make sure you do not end up with duplicates, and that this fact does not interfere with the overall linking logic
+// TODO: set up linking beahvior so that it can be done in real-time
 void link_two(Node* point_a, Node* point_b)
 {
 	// TODO: remove the couts for error checking
@@ -426,8 +422,8 @@ void link_two(Node* point_a, Node* point_b)
 	{
 		Automaton* joint = (point_a->n_atmn->get_num_links() == 2) ? point_a->n_atmn : point_b->n_atmn;
 		Automaton* end   = (point_a->n_atmn->get_num_links() == 2) ? point_b->n_atmn : point_a->n_atmn;
-
 		cout << joint->get_ID() << " is joint. " << end->get_ID() << " is end." << endl;
+
 		int long_l_pos  = (joint->get_links()[0]->n_dist > joint->get_links()[1]->n_dist) ? 0 : 1;
 		int short_l_pos = (joint->get_links()[0]->n_dist > joint->get_links()[1]->n_dist) ? 1 : 0;
 		Automaton* joint_long_l  = joint->get_links()[long_l_pos]->n_atmn;
@@ -437,8 +433,12 @@ void link_two(Node* point_a, Node* point_b)
 		Node* short_l_neighbs = joint_short_l->get_neighbors();
 
 		// check if joint has link which neighbors an end
-		// TODO: how to choose if both links neighbor ends?       (for now, more distant link first)
-		// TODO: how to choose if a link neighbors multiple ends? (for now, more distant neighbor first)
+		// how to choose if both links neighbor ends?       more distant link first
+		// how to choose if a link neighbors multiple ends? nearest neighbor first
+
+		////////////////
+		// check long //
+		////////////////
 		while (long_l_neighbs != NULL)
 		{
 			// we want to be sure that long_l_neighbs is not already a link of joint_long_l
@@ -460,8 +460,8 @@ void link_two(Node* point_a, Node* point_b)
 				end_check = true;
 			}
 
-			// TODO: joint_long_l's neighbor should be at a distance less than distance between joint and end
-			// this is because we don't want to call assign_links multiple times, (i.e. between frames)
+			// joint_long_l's neighbor should be at a distance less than distance between joint and end
+			// this is because we don't currently call assign_links multiple times, (i.e. between frames)
 			// so we only want neighbors that would be discovered at the time link is being attempted between joint and end
 
 			// if joint_long_l has a neighbor that is an end, and is within the same COLLISION distance as the distance between joint and end
@@ -492,79 +492,87 @@ void link_two(Node* point_a, Node* point_b)
 					}
 				
 				// link joint to the end, and end to joint
-				// TODO: this doesn't work if end was the neighbor of joint_long_l and already had 1 link
+				// TODO: this originally produced bad links if end was the neighbor of joint_long_l and already had 1 link
+				// TODO: if necessary (this works atm), set it up so that joint's linking is more considerate of changes in its neighbors 
 				joint->get_links()[long_l_pos] = (point_a->n_atmn == end) ? point_a : point_b;
 				cout << joint->get_ID() << " linked to " << joint->get_links()[long_l_pos]->n_atmn->get_ID() << endl;
 
 				end->add_link((point_a->n_atmn == joint) ? point_a : point_b);
 				cout << end->get_ID() << " linked to " << ((point_a->n_atmn == joint) ? point_a->n_atmn->get_ID() : point_b->n_atmn->get_ID()) << endl;
-				break;
+				return;
 			}
 			long_l_neighbs = long_l_neighbs->n_next;
 		}
 
-		//////////////////////////
-		// BUGGY IMPLEMENTATION //
-		//////////////////////////
+		// if no match through long link:
 
-		/*
-		Node* joint = (point_a->n_atmn->get_num_links() == 2) ? point_a : point_b;
-		Node* end   = (point_a->n_atmn->get_num_links() <  2) ? point_a : point_b;
-
-		// check if joint has link which neighbors an end
-		// TODO: how to choose if both links neighbor ends? (for now, more distant link first)
-		Node* long_link  = (joint->n_atmn->get_links()[0]->n_dist >= joint->n_atmn->get_links()[1]->n_dist) ? joint->n_atmn->get_links()[0] : joint->n_atmn->get_links()[1];
-		Node* short_link = (joint->n_atmn->get_links()[0]->n_dist <  joint->n_atmn->get_links()[1]->n_dist) ? joint->n_atmn->get_links()[0] : joint->n_atmn->get_links()[1];
-
-		// TODO: eliminate redundancy
-		// check long
-		Node* l_iter =  long_link->n_atmn->get_neighbors();
-		Node* s_iter = short_link->n_atmn->get_neighbors();
-		while (l_iter != NULL)
+		/////////////////
+		// check short //
+		/////////////////
+		while (short_l_neighbs != NULL)
 		{
-			// if link neighbors an end
-			if (l_iter->n_atmn->get_num_links() < 2)
+			// we want to be sure that short_l_neighbs is not already a link of joint_short_l
+			bool is_new_link = true;
+			for (int i = 0; i < 2; i++)
+				if (joint_short_l->get_links()[i] != NULL)
+					if (joint_short_l->get_links()[i] == short_l_neighbs)
+						is_new_link = false;
+
+			// we want to be sure that, if short_l_neighbs is the end, it is 0-linked
+			bool end_check;
+			if (short_l_neighbs->n_atmn == end)
 			{
-				// link the end to the joint's link
-				// (note that we need to iterate through l_iter's neighbors to find the right origin for long_link)
-				// TODO: turn this into a "get shortest match" functions
-				Node* l_nbrs = l_iter->n_atmn->get_neighbors();
-				while (l_nbrs != NULL)
+				if (short_l_neighbs->n_atmn->get_num_links() == 0) { end_check = true; }
+				else { end_check = false; }
+			}
+			else
+			{
+				end_check = true;
+			}
+
+			// joint_short_l's neighbor should be at a distance less than distance between joint and end
+			// this is because we don't currently call assign_links multiple times, (i.e. between frames)
+			// so we only want neighbors that would be discovered at the time link is being attempted between joint and end
+
+			// if joint_short_l has a neighbor that is an end, and is within the same COLLISION distance as the distance between joint and end
+			// point_a is chosen for getting the joint-to-end collision distance arbitrarily; using point_b should give same value
+			if (short_l_neighbs->n_atmn->get_num_links() < 2 && short_l_neighbs->n_dist <= point_a->n_dist && is_new_link && end_check)
+			{
+				// add joint_short_l as a link to that neighbor
+				Node* s_nearest_neighb_l = short_l_neighbs->n_atmn->get_neighbors();
+				while (s_nearest_neighb_l != NULL)
 				{
-					if (l_nbrs->n_atmn->get_ID() == long_link->n_atmn->get_ID() &&
-						l_nbrs->n_origin         == abs(l_iter->n_origin - 8))
+					if (s_nearest_neighb_l->n_atmn == joint_short_l &&
+						s_nearest_neighb_l->n_origin == abs(short_l_neighbs->n_origin - 8))
 					{
-						l_iter->n_atmn->add_link(l_nbrs);
+						short_l_neighbs->n_atmn->add_link(s_nearest_neighb_l);
 						break;
 					}
-					l_nbrs = l_nbrs->n_next;
+					s_nearest_neighb_l = s_nearest_neighb_l->n_next;
 				}
-				
-				// break the joint's link off and and link it to the end which was found
+
+				// link joint_short_l to the neighbor that just linked to it, by overwriting its link to joint
 				for (int i = 0; i < 2; i++)
-					if (long_link->n_atmn->get_links()[i]->n_atmn->get_ID() == joint->n_atmn->get_ID() &&
-						long_link->n_atmn->get_links()[i]->n_origin         == abs(long_link->n_origin - 8))
+					if (joint_short_l->get_links()[i]->n_atmn == joint &&
+						joint_short_l->get_links()[i]->n_origin == abs(joint->get_links()[short_l_pos]->n_origin - 8))
 					{
-						long_link->n_atmn->get_links()[i] = l_iter;
+						joint_short_l->get_links()[i] = short_l_neighbs;
+						cout << joint_short_l->get_ID() << " linked to " << joint_short_l->get_links()[i]->n_atmn->get_ID() << endl;
 						break;
 					}
 
-				// link the broken joint to this end
-				for (int i = 0; i < 2; i++)
-					if (joint->n_atmn->get_links()[i] == long_link)
-					{
-						joint->n_atmn->get_links()[i] = end;
-						break;
-					}
+				// link joint to the end, and end to joint
+				// TODO: this originally produced bad links if end was the neighbor of joint_short_l and already had 1 link
+				// TODO: if necessary (this works atm), set it up so that joint's linking is more considerate of changes in its neighbors 
+				joint->get_links()[short_l_pos] = (point_a->n_atmn == end) ? point_a : point_b;
+				cout << joint->get_ID() << " linked to " << joint->get_links()[short_l_pos]->n_atmn->get_ID() << endl;
 
-				// return
+				end->add_link((point_a->n_atmn == joint) ? point_a : point_b);
+				cout << end->get_ID() << " linked to " << ((point_a->n_atmn == joint) ? point_a->n_atmn->get_ID() : point_b->n_atmn->get_ID()) << endl;
 				return;
 			}
-			l_iter = l_iter->n_next;
+			short_l_neighbs = short_l_neighbs->n_next;
 		}
-		*/
-
-		// then check short
 		
 		// TODO: excited behavior
 		// if link neighbors an excited,
@@ -601,16 +609,20 @@ void assign_links()
 	if (links_done) { return; }
 	else { cout << "assign_links() called" << endl; links_done = true; }
 
-	// TODO: cout iterations to verify the order. make sure nothing is skipped, everything is paired correctly
 	// create a set of pointers to iterate through the list 
 	Node** neighbor_iters = new Node*[NUM_PT];
+	int neighbor_progs[NUM_PT];
 	for (int i = 0; i < NUM_PT; i++)
+	{
 		neighbor_iters[i] = POINTS[i]->get_neighbors();
+		neighbor_progs[i] = 0;
+	}
 
 	// iterate through the neighbors in order of collision and conduct linking
-	//the distance could never possibly be larger than double the largest dimension of the map.
+	// the distance could never possibly be larger than double the largest dimension of the map.
 	double dub_max = 2 * ((GRID_H < GRID_W) ? GRID_W : GRID_H);
 	double d_shortest;
+	int    p_shortest;
 	int    n_shortest;
 
 	while (true)
@@ -620,12 +632,25 @@ void assign_links()
 		for (int i = 0; i < NUM_PT; i++)
 		{
 			if (neighbor_iters[i] != NULL)
+			{
 				// set d_shortest to whichever is shorter: d_shortest or current n_atmn
 				if (neighbor_iters[i]->n_dist < d_shortest)
 				{
 					d_shortest = neighbor_iters[i]->n_dist;
+					p_shortest = neighbor_progs[i];
 					n_shortest = i;
 				}
+
+				// if two neighbors have equal distance, be sure to use the one that is earliest in its neighbor chain
+				// else you might skip over some. when you try to link to a skipped neighbor,
+				// the search will hit NULL and throw error at the while below
+				// TODO: does this introduce some sort of bias?
+				else if (neighbor_iters[i]->n_dist == d_shortest)
+				{
+					p_shortest = (neighbor_progs[i] < p_shortest) ? neighbor_progs[i] : p_shortest;
+					n_shortest = (neighbor_progs[i] < p_shortest) ?                i  : n_shortest;
+				}
+			}
 		}
 
 		// d_shortest == dub_max implies all ptrs at NULL (because no n_dist will be > dub_max)
@@ -637,22 +662,14 @@ void assign_links()
 		{
 			int counterpart = (neighbor_iters[n_shortest]->n_atmn->get_ID() - 1);
 			// error check:
-			// cout << n_shortest+1 << "," << counterpart+1 << endl;
+			cout << "Pair: " << n_shortest+1 << "," << counterpart+1 << endl;
 
-			// TODO: sometimes throws an access error here, why?
 			// get the node for the counterpart
 			while (!((neighbor_iters[counterpart]->n_atmn->get_ID() - 1) == n_shortest &&
 				      neighbor_iters[counterpart]->n_origin              == abs(neighbor_iters[n_shortest]->n_origin - 8)))
 			{
 				neighbor_iters[counterpart] = neighbor_iters[counterpart]->n_next;
 			}
-
-			// TODO: remove this error checking
-			/*
-			cout << "Step:" << endl;
-			cout << n_shortest  << ": " << neighbor_iters[n_shortest]->n_atmn->get_ID()  << "-o" << neighbor_iters[n_shortest]->n_origin  << endl;
-			cout << counterpart << ": " << neighbor_iters[counterpart]->n_atmn->get_ID() << "-o" << neighbor_iters[counterpart]->n_origin << endl;
-			*/
 
 			// attempt to link the two
 			link_two(neighbor_iters[n_shortest], neighbor_iters[counterpart]);
@@ -661,6 +678,18 @@ void assign_links()
 			// move n_shortest's counterpart's iterator to position after counterpart neighbor node
 			neighbor_iters[counterpart] = neighbor_iters[counterpart]->n_next;
 			neighbor_iters[n_shortest]  = neighbor_iters[n_shortest]->n_next;
+			neighbor_progs[counterpart]++;
+			neighbor_progs[n_shortest]++;
+
+			//error check:
+			for (int i = 0; i < NUM_PT; i++)
+			{
+				if (neighbor_iters[i] != NULL)
+					cout << i+1 << "-next: " << neighbor_iters[i]->n_atmn->get_ID() << endl;
+				else
+					cout << i+1 << "-next: NULL" << endl;
+			}
+			cout << endl;
 		}
 	}
 

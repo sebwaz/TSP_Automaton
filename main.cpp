@@ -38,15 +38,16 @@ void Draw()
 		switch(get_grid_state()[i][j])
 		{
 			// colorize based on grid value
-			case 0:  glColor3f(0.2, 0.2, 0.2); break; // indicates blank space
-			case 1:  glColor3f(1.0, 0.0, 0.0); break; // 1 corresponds to 1st point in grid
-			case 2:  glColor3f(0.0, 1.0, 0.0); break; // 2 corresponds to 2nd point in grid
-			case 3:  glColor3f(0.0, 0.0, 1.0); break; // etc.
-			case 4:  glColor3f(1.0, 1.0, 0.0); break;
-			case 5:  glColor3f(0.0, 1.0, 1.0); break;
-			case 6:  glColor3f(1.0, 0.0, 1.0); break;
-			case 7:  glColor3f(1.0, 1.0, 1.0); break;
-			default: glColor3f(0.2, 0.2, 0.2); break;
+			case -1: glColor3f(0.2, 0.2, 0.2); break;
+			case  0: glColor3f(0.2, 0.2, 0.2); break; // indicates blank space
+			case  1: glColor3f(1.0, 0.0, 0.0); break; // 1 corresponds to 1st point in grid
+			case  2: glColor3f(0.0, 1.0, 0.0); break; // 2 corresponds to 2nd point in grid
+			case  3: glColor3f(0.0, 0.0, 1.0); break; // etc.
+			case  4: glColor3f(1.0, 1.0, 0.0); break;
+			case  5: glColor3f(0.0, 1.0, 1.0); break;
+			case  6: glColor3f(1.0, 0.0, 1.0); break;
+			case  7: glColor3f(1.0, 1.0, 1.0); break;
+			default: glColor3f(0.5, 0.5, 0.5); break;
 		}
 
 		// draw unit
