@@ -16,8 +16,6 @@ static int  frame      = 1;
 static bool links_done = false;
 
 /* TSP SPEC */
-static const int NUM_PT   = 12;  // TODO: colorization currently only handles 7 points 
-
 static int**     GRID;
 Automaton*       POINTS[NUM_PT];
 
@@ -622,8 +620,8 @@ void assign_links()
 	// the distance could never possibly be larger than double the largest dimension of the map.
 	double dub_max = 2 * ((GRID_H < GRID_W) ? GRID_W : GRID_H);
 	double d_shortest;
-	int    p_shortest;
 	int    n_shortest;
+	int    counterpart;
 
 	while (true)
 	{
@@ -634,21 +632,16 @@ void assign_links()
 			if (neighbor_iters[i] != NULL)
 			{
 				// set d_shortest to whichever is shorter: d_shortest or current n_atmn
-				if (neighbor_iters[i]->n_dist < d_shortest)
+				// if two neighbors have equal distance, be sure to use the one whose counterpart has already been reached
+				// else you might skip over some.
+				// TODO: does this introduce some sort of bias? biased toward last points
+				if (neighbor_iters[i]->n_dist <= d_shortest &&
+				   (neighbor_iters[(neighbor_iters[i]->n_atmn->get_ID() - 1)]->n_atmn->get_ID() - 1) == i &&
+					neighbor_iters[(neighbor_iters[i]->n_atmn->get_ID() - 1)]->n_origin				 == abs(neighbor_iters[i]->n_origin - 8))
 				{
-					d_shortest = neighbor_iters[i]->n_dist;
-					p_shortest = neighbor_progs[i];
-					n_shortest = i;
-				}
-
-				// if two neighbors have equal distance, be sure to use the one that is earliest in its neighbor chain
-				// else you might skip over some. when you try to link to a skipped neighbor,
-				// the search will hit NULL and throw error at the while below
-				// TODO: does this introduce some sort of bias?
-				else if (neighbor_iters[i]->n_dist == d_shortest)
-				{
-					p_shortest = (neighbor_progs[i] < p_shortest) ? neighbor_progs[i] : p_shortest;
-					n_shortest = (neighbor_progs[i] < p_shortest) ?                i  : n_shortest;
+					d_shortest  = neighbor_iters[i]->n_dist;
+					n_shortest  = i;
+					counterpart = (neighbor_iters[i]->n_atmn->get_ID() - 1);
 				}
 			}
 		}
@@ -660,16 +653,8 @@ void assign_links()
 		}
 		else
 		{
-			int counterpart = (neighbor_iters[n_shortest]->n_atmn->get_ID() - 1);
 			// error check:
 			cout << "Pair: " << n_shortest+1 << "," << counterpart+1 << endl;
-
-			// get the node for the counterpart
-			while (!((neighbor_iters[counterpart]->n_atmn->get_ID() - 1) == n_shortest &&
-				      neighbor_iters[counterpart]->n_origin              == abs(neighbor_iters[n_shortest]->n_origin - 8)))
-			{
-				neighbor_iters[counterpart] = neighbor_iters[counterpart]->n_next;
-			}
 
 			// attempt to link the two
 			link_two(neighbor_iters[n_shortest], neighbor_iters[counterpart]);

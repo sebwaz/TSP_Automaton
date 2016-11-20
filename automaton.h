@@ -9,9 +9,11 @@
 // ATMN GLOBALS //
 //////////////////
 
+static const int NUM_PT   = 7;  // TODO: colorization currently only handles 7 points 
 static const int NUM_OGNS = 9;
-static const int GRID_W = 200;
-static const int GRID_H = 200;
+static const int GRID_W   = 200;
+static const int GRID_H   = 200;
+
 
 
 

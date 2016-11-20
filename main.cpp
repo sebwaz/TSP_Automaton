@@ -1,4 +1,5 @@
 #include "automaton.h"
+#include "rgb.h"
 using namespace std;
 
 
@@ -11,6 +12,9 @@ using namespace std;
 static GLfloat UNIT_STRETCH = 0.01;               // for extending units on connection map to be visible @ small unit size
 static GLfloat UNIT_SPAN    = 0.3 / get_grid_w(); // assume square
 static bool    done         = false;
+
+/* FOR COLORS */
+static float** colors;
 
 
 
@@ -35,19 +39,13 @@ void Draw()
 	for (int i = 0; i < get_grid_w(); i++) { for (int j = 0; j < get_grid_h(); j++) {
 		// TODO: colorization currently only handles 7 points
 		// cout << GRID[i][j];
-		switch(get_grid_state()[i][j])
+		int state = get_grid_state()[i][j] - 1;
+		switch(state + 1)
 		{
 			// colorize based on grid value
 			case -1: glColor3f(0.2, 0.2, 0.2); break;
 			case  0: glColor3f(0.2, 0.2, 0.2); break; // indicates blank space
-			case  1: glColor3f(1.0, 0.0, 0.0); break; // 1 corresponds to 1st point in grid
-			case  2: glColor3f(0.0, 1.0, 0.0); break; // 2 corresponds to 2nd point in grid
-			case  3: glColor3f(0.0, 0.0, 1.0); break; // etc.
-			case  4: glColor3f(1.0, 1.0, 0.0); break;
-			case  5: glColor3f(0.0, 1.0, 1.0); break;
-			case  6: glColor3f(1.0, 0.0, 1.0); break;
-			case  7: glColor3f(1.0, 1.0, 1.0); break;
-			default: glColor3f(0.5, 0.5, 0.5); break;
+			default: glColor3f(colors[state][0], colors[state][1], colors[state][2]); break;
 		}
 
 		// draw unit
@@ -76,17 +74,7 @@ void Draw()
 	for (int i = 0; i < get_num_atmn(); i++)
 	{
 		Automaton* point = get_arr_atmn(i);
-		switch (i + 1)
-		{
-			// colorize based on grid value
-			case 1:  glColor3f(1.0, 0.0, 0.0); break; // 1 corresponds to 1st point in grid
-			case 2:  glColor3f(0.0, 1.0, 0.0); break; // 2 corresponds to 2nd point in grid
-			case 3:  glColor3f(0.0, 0.0, 1.0); break; // etc.
-			case 4:  glColor3f(1.0, 1.0, 0.0); break;
-			case 5:  glColor3f(0.0, 1.0, 1.0); break;
-			case 6:  glColor3f(1.0, 0.0, 1.0); break;
-			case 7:  glColor3f(1.0, 1.0, 1.0); break;
-		}
+		glColor3f(colors[i][0], colors[i][1], colors[i][2]);
 
 		int x = point->get_xy()[0];
 		int y = point->get_xy()[1];
@@ -216,7 +204,22 @@ int main(int iArgc, char** cppArgv)
 {
 	// allocate grid
 	InitTSP();
-	
+
+	// set up colors 
+	// TODO: move all of this back into rgb.h/cpp
+	// make sure you use POW.
+	// and see if you can figure out why the spans are so small
+	// the pastels look nice but contrast is better
+	int divisor = get_divisor(NUM_PT);
+	float min = 0.5;
+	float max = 1.0;
+
+	colors = new float*[pow((divisor + 1), 3)];
+	for (int i = 0; i < pow((divisor + 1), 3); i++)
+		colors[i] = new float[3];
+
+	divide_colors(divisor, min, max, colors);
+
 	// run visualization
 	glutInit(&iArgc, cppArgv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
