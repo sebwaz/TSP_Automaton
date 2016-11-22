@@ -15,6 +15,8 @@ static bool    done         = false;
 
 /* FOR COLORS */
 static float** colors;
+const float c_min = 0.3;
+const float c_max = 1.0;
 
 
 
@@ -24,7 +26,6 @@ static float** colors;
 
 static void timerCallback(int value) {
 	if (!done) { done = !radiate(); print_neighbors_all(); }
-	else	   { assign_links(); }
 	glutPostRedisplay();
 }
 
@@ -37,7 +38,7 @@ void Draw()
 
 	/* DRAW RADIATION MAP */
 	for (int i = 0; i < get_grid_w(); i++) { for (int j = 0; j < get_grid_h(); j++) {
-		// TODO: colorization currently only handles 7 points
+		// error checking
 		// cout << GRID[i][j];
 		int state = get_grid_state()[i][j] - 1;
 		switch(state + 1)
@@ -211,14 +212,12 @@ int main(int iArgc, char** cppArgv)
 	// and see if you can figure out why the spans are so small
 	// the pastels look nice but contrast is better
 	int divisor = get_divisor(NUM_PT);
-	float min = 0.5;
-	float max = 1.0;
 
 	colors = new float*[pow((divisor + 1), 3)];
 	for (int i = 0; i < pow((divisor + 1), 3); i++)
 		colors[i] = new float[3];
 
-	divide_colors(divisor, min, max, colors);
+	divide_colors(divisor, c_min, c_max, colors);
 
 	// run visualization
 	glutInit(&iArgc, cppArgv);
@@ -230,5 +229,8 @@ int main(int iArgc, char** cppArgv)
 	glutDisplayFunc(Draw);
 	glutIdleFunc(Idle);
 	glutMainLoop();
+
+	// TODO: calculate distance of computed path
+	// TODO: calculate minimum distance (the hard way)
 	return 0;
 }

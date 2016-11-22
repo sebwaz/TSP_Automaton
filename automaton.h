@@ -9,7 +9,7 @@
 // ATMN GLOBALS //
 //////////////////
 
-static const int NUM_PT   = 7;  // TODO: colorization currently only handles 7 points 
+static const int NUM_PT   = 10;
 static const int NUM_OGNS = 9;
 static const int GRID_W   = 200;
 static const int GRID_H   = 200;
@@ -117,6 +117,10 @@ void neighbor_two(Automaton* point_a, int a_origin, Automaton* point_b, int b_or
 // where true indicates that radiation has collided at given position for each
 // adds each occupant to each other's neighbors list
 void assign_neighbors(bool neighbors[][NUM_OGNS], int coll_x, int coll_y);
+
+// called before assign _inks to reset all linkage statuses.
+// Done as a quick fix to visualizing linkage in real time.
+void clear_links();
 
 // called by assign_neighbors() after successfully registering
 // two points as each other's neighbors to determine how

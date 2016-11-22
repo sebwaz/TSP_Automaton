@@ -13,7 +13,6 @@ using namespace std;
 
 /* FRAME COUNTER */
 static int  frame      = 1;
-static bool links_done = false;
 
 /* TSP SPEC */
 static int**     GRID;
@@ -338,7 +337,8 @@ bool radiate()
 	// TODO: call at very end so that repeated calls don't interfere with one another?
 	// TODO: but if you don't update frame by frame, figure out how to draw in real-time for best demo
 	// make sure its IDEMPOTENT!
-	// assign_links(); // moved to main.cpp
+	clear_links();
+	assign_links(); // moved to main.cpp
 	frame++;
 	return nonempty;
 }
@@ -392,7 +392,7 @@ void neighbor_two(Automaton* point_a, int a_origin, Automaton* point_b, int b_or
 	point_b->add_neighbor(point_a, a_origin, c_dist);
 }
 
-// TODO: set up linking beahvior so that it can be done in real-time
+// TODO: set up linking behavior so that it can be done in real-time
 void link_two(Node* point_a, Node* point_b)
 {
 	// TODO: remove the couts for error checking
@@ -572,9 +572,14 @@ void link_two(Node* point_a, Node* point_b)
 			short_l_neighbs = short_l_neighbs->n_next;
 		}
 		
+		///////////////////////
+		// check/set excited //
+		///////////////////////
+
+
 		// TODO: excited behavior
 		// if link neighbors an excited,
-			// break excited neighbor from its old link   (which neighbors an end), connect it's old link to its neighbor end
+			// break excited neighbor from its old link   (which whose neighbor neighbors an end), connect it's old link to its neighbor end
 			// break this link and connect it to the excited neighbor (now an end)
 			// connect this joint (now an end) to other end
 		
@@ -604,8 +609,7 @@ void assign_neighbors(bool neighbors[][NUM_OGNS], int coll_x, int coll_y)
 void assign_links()
 {
 	// only assign_links once
-	if (links_done) { return; }
-	else { cout << "assign_links() called" << endl; links_done = true; }
+	cout << "assign_links() called" << endl;
 
 	// create a set of pointers to iterate through the list 
 	Node** neighbor_iters = new Node*[NUM_PT];
@@ -683,10 +687,19 @@ void assign_links()
 	{
 		if (POINTS[i]->get_links()[0] == NULL) { cout << i + 1 << ": NULL"; }
 		else								   { cout << i + 1 << ": " << POINTS[i]->get_links()[0]->n_atmn->get_ID() << "-o" << POINTS[i]->get_links()[0]->n_origin; }
-		if (POINTS[i]->get_links()[1] == NULL) { cout << ", NULL"; }
+		if (POINTS[i]->get_links()[1] == NULL) { cout <<          ", NULL" << endl; }
 		else								   { cout <<          ", " << POINTS[i]->get_links()[1]->n_atmn->get_ID() << "-o" << POINTS[i]->get_links()[1]->n_origin << endl; }
 	}
 
 	//deallocate the the array of list iterators
 	delete[](neighbor_iters);
+}
+
+void clear_links()
+{
+	for (int i = 0; i < NUM_PT; i++)
+	{
+		POINTS[i]->get_links()[0] = NULL;
+		POINTS[i]->get_links()[1] = NULL;
+	}
 }
