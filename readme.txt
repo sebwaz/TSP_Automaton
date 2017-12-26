@@ -1,0 +1,2 @@
+1.) make sure ./glut is listed in the project include folders
+2.) The code/solution expects VS 2015+. An earlier version will likely throw an error: "cannot specify explicit initializer for arrays". Workaround is possible by modifying the code, but has not been implemented as this project is retired.
