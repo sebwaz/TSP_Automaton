@@ -9,7 +9,7 @@
 // ATMN GLOBALS //
 //////////////////
 
-static const int NUM_PT   = 10;
+static const int NUM_PT   = 20;
 static const int NUM_OGNS = 9;
 static const int GRID_W   = 200;
 static const int GRID_H   = 200;

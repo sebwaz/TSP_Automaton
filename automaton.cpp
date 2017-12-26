@@ -683,13 +683,15 @@ void assign_links()
 	}
 
 	// printout of linkages, for error checking
+	
 	for (int i = 0; i < NUM_PT; i++)
 	{
 		if (POINTS[i]->get_links()[0] == NULL) { cout << i + 1 << ": NULL"; }
 		else								   { cout << i + 1 << ": " << POINTS[i]->get_links()[0]->n_atmn->get_ID() << "-o" << POINTS[i]->get_links()[0]->n_origin; }
-		if (POINTS[i]->get_links()[1] == NULL) { cout <<          ", NULL" << endl; }
+		if (POINTS[i]->get_links()[1] == NULL) { cout << ", NULL" << endl; }
 		else								   { cout <<          ", " << POINTS[i]->get_links()[1]->n_atmn->get_ID() << "-o" << POINTS[i]->get_links()[1]->n_origin << endl; }
 	}
+	cout << endl;
 
 	//deallocate the the array of list iterators
 	delete[](neighbor_iters);
